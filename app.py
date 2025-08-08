@@ -131,6 +131,10 @@ def apply_theme(theme: str):
         """,
         height=0,
     )
+    /* Hide only GitHub icon */
+    header[data-testid="stHeader"] a[href*="github.com"] {
+        display: none !important;
+    }
 
 # one-time default
 if "theme" not in st.session_state:

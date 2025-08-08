@@ -716,7 +716,7 @@ if available_modules:
     module_labels = [GT.get(k, {}).get(language, k) for k in module_keys]
     module_map = dict(zip(module_labels, module_keys))
 
-    selected_label = st.sidebar.radio(GT["select_module"], module_labels, key="modern_module")
+    selected_label = st.sidebar.radio(T["select_module"], module_labels, key="modern_module")
 
     selected_module = module_map[selected_label]
     module_func = available_modules[selected_module]

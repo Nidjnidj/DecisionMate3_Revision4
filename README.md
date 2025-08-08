@@ -54,7 +54,7 @@ This is **Revision 3** — the most advanced version with a redesigned UI, full 
 ## 👨‍💻 Developer
 
 **Nijat Isgandarov**  
-Senior Project Engineer | MBA | Full-stack App Developer  
+Project Lead/PM | MBA | Full-stack App Developer  
 [LinkedIn Profile](https://www.linkedin.com/in/nijatisgandarov-9a211334)
 
 ---

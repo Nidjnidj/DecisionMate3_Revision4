@@ -499,7 +499,7 @@ st.sidebar.subheader(T["select_module"])
 
 # === Module Groups ===
 group_modules = {
-    "🧠 Personal Decisions": {
+    GT.get("personal", "🧠 Personal Decisions"): {
         "LifeCareer": life_career,
         "ProsCons": pros_cons,
         "GoalPlanner": goal_planner,

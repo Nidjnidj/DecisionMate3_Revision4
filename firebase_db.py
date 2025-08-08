@@ -1,15 +1,13 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-import json
 import streamlit as st
 
-# Load Firebase credentials from Streamlit secrets
 firebase_config = st.secrets["firebase"]
-# Initialize Firebase app if not already initialized
-if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_config)
-    firebase_admin.initialize_app(cred)
 
+# Проверка и инициализация Firebase
+if not firebase_admin._apps:
+    cred = credentials.Certificate(dict(firebase_config))
+    firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
@@ -20,14 +18,15 @@ def log_user_activity(username, action):
     })
 
 def save_project(username, project_name, data):
-    # ✅ Automatically wrap lists so Firestore accepts them
     if isinstance(data, list):
         data = {"data": data}
     db.collection("projects").document(username).collection("user_projects").document(project_name).set(data)
 
 def load_project_data(username, project_name):
     doc = db.collection("projects").document(username).collection("user_projects").document(project_name).get()
-    if doc.exists:
-        return doc.to_dict()
-    else:
-        return None
+    return doc.to_dict() if doc.exists else None
+
+def load_all_projects(collection_name):
+    """Load all documents in a top-level collection (e.g., process_simulations)."""
+    docs = db.collection(collection_name).stream()
+    return {doc.id: doc.to_dict() for doc in docs}

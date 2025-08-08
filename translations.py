@@ -455,7 +455,14 @@ TRANSLATIONS = {
     },
     "en": {
         "title": "DecisionMate",
-        "select_module": "Select Module",
+        "select_module": {
+            "en": "Select Module",
+            "az": "Modulu Seç",
+            "ru": "Выбрать модуль",
+            "tr": "Modül Seç",
+            "es": "Seleccionar Módulo"
+        }
+
         "modules": "Modules",
         "login_button": "Login",
         "login_title": "Login to Your Account",

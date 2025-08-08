@@ -713,7 +713,9 @@ if available_modules:
     module_keys = list(available_modules.keys())
 
     # Use GT for translated labels (fallback to key if missing)
-    module_labels = [T["modules"].get(k, {}).get(language, k) for k in module_keys]
+    modules_dict = T.get("modules", {})  # ✅ Fallback if key is missing
+    module_labels = [modules_dict.get(k, {}).get(language, k) for k in module_keys]
+
 
     module_map = dict(zip(module_labels, module_keys))
 

@@ -83,13 +83,17 @@ def apply_theme(theme: str):
     .hero-list li { color: var(--text); font-size: 16px; margin-bottom: .5rem; }
     .footer { text-align: center; font-size: 14px; color: var(--muted); margin-top: 4rem; }
 
-    /* 🔒 Hide GitHub icon — all known selectors */
-    header[data-testid="stHeader"] a[href*="github.com"] { display:none !important; }
-    header[data-testid="stHeader"] a[title*="GitHub" i] { display:none !important; }
-    header[data-testid="stHeader"] button[title*="View source" i] { display:none !important; }
+    /* 🔒 Ultimate hide: GitHub / View source button, regardless of label/selector */
+    header[data-testid="stHeader"] a[href*="github"],
+    header[data-testid="stHeader"] a[aria-label*="github" i],
+    header[data-testid="stHeader"] a[aria-label*="view source" i],
+    header[data-testid="stHeader"] a[title*="github" i],
+    header[data-testid="stHeader"] a[title*="view source" i] {
+      display: none !important;
+    }
 
-    /* Optional — hide entire toolbar (Share / GitHub / menu) */
-    /* header[data-testid="stHeader"] .stToolbar { display:none !important; } */
+    /* (Optional) hide the entire toolbar (Share, star, edit, GitHub, overflow) */
+    /* header[data-testid="stHeader"] .stToolbar { display: none !important; } */
 
     /* Responsive padding */
     @media (max-width: 768px) {

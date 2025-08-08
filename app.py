@@ -719,7 +719,8 @@ if available_modules:
 
     module_map = dict(zip(module_labels, module_keys))
 
-    selected_label = st.sidebar.radio(T["select_module"], module_labels, key="modern_module")
+    selected_label = st.sidebar.radio(T["select_module"].get(language, "Select Module"), module_labels, key="modern_module")
+
 
     selected_module = module_map[selected_label]
     module_func = available_modules[selected_module]

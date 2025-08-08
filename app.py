@@ -496,7 +496,8 @@ from modules.p6_scheduler import run as p6_scheduler
 
 # === Unified UI Layout ===
 st.title(T["title"])
-st.sidebar.subheader(T[""])
+st.sidebar.subheader(T.get("select_module", "Select Module"))
+
 
 GT = T.get("group_titles", {})
 # === Module Groups ===
@@ -720,7 +721,8 @@ if available_modules:
     module_map = dict(zip(module_labels, module_keys))
 
     # Safely get sidebar label for module selection
-    select_module_label = T["select_module"].get(language, "Select Module")
+    select_module_label = T.get("select_module", "Select Module")
+
     selected_label = st.sidebar.radio(select_module_label, module_labels, key="modern_module")
 
 
@@ -759,4 +761,3 @@ if not st.session_state.get("logged_in", False):
                 st_lottie(cat_lottie, height=240, key="cat_typing")
             except FileNotFoundError:
                 st.image("nijat_logo.png", use_column_width=True)
-

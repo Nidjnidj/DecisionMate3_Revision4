@@ -461,7 +461,7 @@ TRANSLATIONS = {
             "ru": "Выбрать модуль",
             "tr": "Modül Seç",
             "es": "Seleccionar Módulo"
-        }
+        },
 
         "modules": "Modules",
         "login_button": "Login",

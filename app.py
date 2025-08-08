@@ -710,21 +710,23 @@ available_modules = group_modules[selected_group]
 
 if available_modules:
     module_keys = list(available_modules.keys())
-    module_labels = [T.get(k, {}).get(language, k) for k in module_keys]
+
+    # Use GT for translated labels (fallback to key if missing)
+    module_labels = [GT.get(k, {}).get(language, k) for k in module_keys]
     module_map = dict(zip(module_labels, module_keys))
-    
-    selected_label = st.sidebar.radio(T["select_module"], module_labels, key="modern_module")
+
+    selected_label = st.sidebar.radio(GT["select_module"][language], module_labels, key="modern_module")
     selected_module = module_map[selected_label]
     module_func = available_modules[selected_module]
-
     key = selected_module.lower().replace(" ", "_")
 
     # Show Module Section
     st.markdown("<div class='module-card'>", unsafe_allow_html=True)
-    st.markdown(f"<div class='module-title'>{selected_module}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='module-title'>{selected_label}</div>", unsafe_allow_html=True)
 
-    if "descriptions" in T and key in T["descriptions"]:
-        st.markdown(f"<div class='module-description'>{T['descriptions'][key]}</div>", unsafe_allow_html=True)
+    if "descriptions" in GT and key in GT["descriptions"]:
+        st.markdown(f"<div class='module-description'>{GT['descriptions'][key][language]}</div>", unsafe_allow_html=True)
+
 
     try:
         module_func(T)

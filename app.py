@@ -712,16 +712,18 @@ available_modules = group_modules[selected_group]
 if available_modules:
     module_keys = list(available_modules.keys())
 
-    # Use GT for translated labels (fallback to key if missing)
-    modules_dict = T.get("modules", {})  # ✅ Fallback if key is missing
+    # Get translated module labels
+    modules_dict = T.get("modules", {})
     module_labels = [modules_dict.get(k, {}).get(language, k) for k in module_keys]
 
-
+    # Create a reverse map from label → key
     module_map = dict(zip(module_labels, module_keys))
 
-    selected_label = st.sidebar.radio(T["select_module"].get(language, "Select Module"), module_labels, key="modern_module")
+    # Safely get sidebar label for module selection
+    select_module_label = T.get("select_module", {}).get(language, "Select Module")
+    selected_label = st.sidebar.radio(select_module_label, module_labels, key="modern_module")
 
-
+    # Get selected module key and function
     selected_module = module_map[selected_label]
     module_func = available_modules[selected_module]
     key = selected_module.lower().replace(" ", "_")
@@ -733,7 +735,6 @@ if available_modules:
     if "descriptions" in GT and key in GT["descriptions"]:
         st.markdown(f"<div class='module-description'>{GT['descriptions'][key][language]}</div>", unsafe_allow_html=True)
 
-
     try:
         module_func(T)
     except Exception as e:
@@ -741,8 +742,11 @@ if available_modules:
         st.exception(e)
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 else:
     st.warning("This category has no modules implemented yet.")
+
+# Show cat animation on welcome screen
 if not st.session_state.get("logged_in", False):
     with st.container():
         st.markdown("---")  # horizontal separator

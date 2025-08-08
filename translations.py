@@ -833,4 +833,126 @@ TRANSLATIONS = {
             "burndown_chart": "Visualiza trabajo restante en proyectos ágiles."
     }
 },
+},
+TRANSLATIONS = {
+    "en": {
+        "title": "DecisionMate",
+        "select_module": "Select Module",
+        "group_titles": {
+            "personal": "🧠 Personal Decisions",
+            "business": "📊 Business & Financial",
+            "construction": "🛠️ Construction",
+            "reservoir": "⛽ Reservoir Engineering",
+            "civil": "🏗️ Civil and Structural Engineering",
+            "electrical": "💡 Electrical",
+            "hse": "🛡 HSE Management",
+            "quality": "🧾 Quality Management",
+            "instrumentation": "🎲 Instrumentation",
+            "simulation": "🔬 Simulation",
+            "interface": "🗂️ Interface Management",
+            "stakeholder": "🧩 Stakeholder Management",
+            "procurement": "🧾 Procurement Management",
+            "risk": "🔍 Risk Management",
+            "planning": "📅 Planning",
+            "contracts": "📜 Contracts",
+            "agile": "🚀 Agile",
+            "housing": "🏠 Housing / Architecture"
+        }
+    },
+    "ru": {
+        "title": "DecisionMate",
+        "select_module": "Выберите модуль",
+        "group_titles": {
+            "personal": "🧠 Личные решения",
+            "business": "📊 Бизнес и финансы",
+            "construction": "🛠️ Строительство",
+            "reservoir": "⛽ Разработка месторождений",
+            "civil": "🏗️ Гражданское и строительное проектирование",
+            "electrical": "💡 Электротехника",
+            "hse": "🛡 Охрана труда и техника безопасности",
+            "quality": "🧾 Управление качеством",
+            "instrumentation": "🎲 Приборостроение",
+            "simulation": "🔬 Симуляции",
+            "interface": "🗂️ Управление интерфейсами",
+            "stakeholder": "🧩 Управление заинтересованными сторонами",
+            "procurement": "🧾 Закупки",
+            "risk": "🔍 Управление рисками",
+            "planning": "📅 Планирование",
+            "contracts": "📜 Контракты",
+            "agile": "🚀 Agile",
+            "housing": "🏠 Архитектура и жильё"
+        }
+    },
+    "az": {
+        "title": "DecisionMate",
+        "select_module": "Modul Seçin",
+        "group_titles": {
+            "personal": "🧠 Şəxsi Qərarlar",
+            "business": "📊 Biznes və Maliyyə",
+            "construction": "🛠️ Tikinti",
+            "reservoir": "⛽ Yataq Mühəndisliyi",
+            "civil": "🏗️ Vətəndaş və Struktur Mühəndisliyi",
+            "electrical": "💡 Elektrik Mühəndisliyi",
+            "hse": "🛡 Əməyin Mühafizəsi",
+            "quality": "🧾 Keyfiyyət İdarəetməsi",
+            "instrumentation": "🎲 Alətləşmə",
+            "simulation": "🔬 Simulyasiya",
+            "interface": "🗂️ İnterfeys İdarəetməsi",
+            "stakeholder": "🧩 Maraqlı Tərəflərin İdarəolunması",
+            "procurement": "🧾 Satınalma",
+            "risk": "🔍 Risk İdarəetməsi",
+            "planning": "📅 Planlaşdırma",
+            "contracts": "📜 Müqavilələr",
+            "agile": "🚀 Agile",
+            "housing": "🏠 Mənzil / Memarlıq"
+        }
+    },
+    "tr": {
+        "title": "DecisionMate",
+        "select_module": "Modül Seçin",
+        "group_titles": {
+            "personal": "🧠 Kişisel Kararlar",
+            "business": "📊 İş ve Finans",
+            "construction": "🛠️ İnşaat",
+            "reservoir": "⛽ Rezervuar Mühendisliği",
+            "civil": "🏗️ İnşaat ve Yapı Mühendisliği",
+            "electrical": "💡 Elektrik",
+            "hse": "🛡 İş Sağlığı ve Güvenliği",
+            "quality": "🧾 Kalite Yönetimi",
+            "instrumentation": "🎲 Enstrümantasyon",
+            "simulation": "🔬 Simülasyon",
+            "interface": "🗂️ Arayüz Yönetimi",
+            "stakeholder": "🧩 Paydaş Yönetimi",
+            "procurement": "🧾 Tedarik",
+            "risk": "🔍 Risk Yönetimi",
+            "planning": "📅 Planlama",
+            "contracts": "📜 Sözleşmeler",
+            "agile": "🚀 Agile",
+            "housing": "🏠 Konut / Mimarlık"
+        }
+    },
+    "es": {
+        "title": "DecisionMate",
+        "select_module": "Seleccionar módulo",
+        "group_titles": {
+            "personal": "🧠 Decisiones Personales",
+            "business": "📊 Negocios y Finanzas",
+            "construction": "🛠️ Construcción",
+            "reservoir": "⛽ Ingeniería de Yacimientos",
+            "civil": "🏗️ Ingeniería Civil y Estructural",
+            "electrical": "💡 Ingeniería Eléctrica",
+            "hse": "🛡 Seguridad y Salud Laboral",
+            "quality": "🧾 Gestión de Calidad",
+            "instrumentation": "🎲 Instrumentación",
+            "simulation": "🔬 Simulación",
+            "interface": "🗂️ Gestión de Interfaces",
+            "stakeholder": "🧩 Gestión de Interesados",
+            "procurement": "🧾 Adquisiciones",
+            "risk": "🔍 Gestión de Riesgos",
+            "planning": "📅 Planificación",
+            "contracts": "📜 Contratos",
+            "agile": "🚀 Agile",
+            "housing": "🏠 Vivienda / Arquitectura"
+        }
+    }
 }

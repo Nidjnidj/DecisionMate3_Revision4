@@ -13,6 +13,9 @@ from streamlit_lottie import st_lottie
 
 import requests
 import json
+import os
+st.write("📁 Current directory contents:")
+st.write(os.listdir("."))
 
 @st.cache_data
 def load_lottie_file(filepath: str):

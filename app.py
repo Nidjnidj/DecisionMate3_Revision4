@@ -10,7 +10,7 @@ from firebase_db import log_user_activity
 from translations import TRANSLATIONS
 import requests
 from streamlit_lottie import st_lottie
-
+import streamlit.components.v1 as components
 import requests
 import json
 
@@ -37,10 +37,7 @@ st.set_page_config(
     page_icon="📊",
     initial_sidebar_state="expanded"
 )
-import streamlit as st
-import streamlit.components.v1 as components
 
-import streamlit.components.v1 as components
 
 def apply_theme(theme: str):
     css = """

@@ -1,5 +1,5 @@
 TRANSLATIONS = {
-    "module_names": {
+    "modules": {
     "en": {
         "LifeCareer": "Life & Career Decisions",
         "SWOT": "SWOT Analysis",

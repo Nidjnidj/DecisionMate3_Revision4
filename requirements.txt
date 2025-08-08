@@ -13,3 +13,4 @@ requests
 streamlit-lottie
 gcloud
 setuptools
+graphviz

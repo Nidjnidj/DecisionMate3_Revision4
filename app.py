@@ -713,7 +713,8 @@ if available_modules:
     module_keys = list(available_modules.keys())
 
     # Use GT for translated labels (fallback to key if missing)
-    module_labels = [GT.get(k, {}).get(language, k) for k in module_keys]
+    module_labels = [T["modules"].get(k, {}).get(language, k) for k in module_keys]
+
     module_map = dict(zip(module_labels, module_keys))
 
     selected_label = st.sidebar.radio(T["select_module"], module_labels, key="modern_module")

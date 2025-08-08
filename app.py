@@ -37,6 +37,77 @@ st.set_page_config(
     page_icon="📊",
     initial_sidebar_state="expanded"
 )
+# ---- THEME SETUP (place right after st.set_page_config) ----
+import streamlit.components.v1 as components
+
+def apply_theme(theme: str):
+    css = """
+    <style>
+    :root{
+      --bg: #ffffff;
+      --panel: #f7f7f9;
+      --text: #111111;
+      --muted: #666666;
+      --accent: #0d6efd;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --border: #e7e7ee;
+    }
+    html[data-theme="dark"]{
+      --bg: #0e1117;
+      --panel: #111826;
+      --text: #e6e6e6;
+      --muted: #b3b3b3;
+      --accent: #4e8cff;
+      --shadow: 0 2px 16px rgba(0,0,0,0.5);
+      --border: #1d2330;
+    }
+
+    .stApp { background: var(--bg); color: var(--text); }
+
+    /* Shared components */
+    .module-card {
+      background: var(--panel) !important;
+      color: var(--text) !important;
+      box-shadow: var(--shadow) !important;
+      border: 1px solid var(--border);
+    }
+    .module-title { color: var(--text) !important; }
+    .module-description { color: var(--muted) !important; }
+
+    div.stButton > button:first-child {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border: none !important;
+    }
+    div.stButton > button:first-child:hover {
+      filter: brightness(0.9); transform: scale(1.02);
+    }
+
+    section[data-testid="stSidebar"] {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+    }
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+    components.html(
+        f"""
+        <script>
+          const root = window.parent.document.documentElement;
+          root.setAttribute('data-theme', '{theme}');
+        </script>
+        """,
+        height=0,
+    )
+
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"
+
+# Sidebar toggle goes near the top of the sidebar UI
+dark_on = st.sidebar.toggle("Dark mode", value=(st.session_state.theme == "dark"), key="dark_mode_toggle")
+st.session_state.theme = "dark" if dark_on else "light"
+apply_theme(st.session_state.theme)
+
 # === Global CSS Styling ===
 st.markdown("""
 <style>
@@ -763,3 +834,4 @@ if not st.session_state.get("logged_in", False):
                 st_lottie(cat_lottie, height=240, key="cat_typing")
             except FileNotFoundError:
                 st.image("nijat_logo.png", use_column_width=True)
+# --- at the top of app.py (right after imports and set_page_config) ---

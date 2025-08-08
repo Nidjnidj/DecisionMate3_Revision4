@@ -271,7 +271,7 @@ TRANSLATIONS = {
         "PID_Creator": "P&ID Yaradıcısı",
         "BasisOfDesign": "Layihələndirmə Əzası",
         "ReservoirSimulator": "Lay Simulyatoru"
-},
+    },
     "tr": {
         "LifeCareer": "Yaşam ve Kariyer Kararları",
         "SWOT": "SWOT Analizi",
@@ -361,7 +361,7 @@ TRANSLATIONS = {
         "PID_Creator": "P&ID Oluşturucu",
         "BasisOfDesign": "Tasarım Esası",
         "ReservoirSimulator": "Rezervuar Simülatörü"
-},
+    },
     "es": {
         "LifeCareer": "Decisiones de Vida y Carrera",
         "SWOT": "Análisis FODA",
@@ -451,8 +451,8 @@ TRANSLATIONS = {
         "PID_Creator": "Creador de P&ID",
         "BasisOfDesign": "Base de Diseño",
         "ReservoirSimulator": "Simulador de Yacimiento"
-},
-
+    },
+    },
     "en": {
         "title": "DecisionMate",
         "select_module": "Select Module",

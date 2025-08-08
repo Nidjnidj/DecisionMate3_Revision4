@@ -15,3 +15,4 @@ gcloud
 setuptools
 graphviz
 streamlit-drawable-canvas
+numpy_financial

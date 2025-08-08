@@ -11,9 +11,5 @@ networkx
 pyvis
 requests
 streamlit-lottie
-scipy
-scikit-learn
-seaborn
-sympy
-python-docx
-pypandoc
+gcloud
+setuptools

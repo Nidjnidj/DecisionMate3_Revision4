@@ -1409,4 +1409,4 @@ TRANSLATIONS = {
             "housing": "🏠 Vivienda / Arquitectura"
         }
     }
-},
+}

@@ -37,7 +37,7 @@ st.set_page_config(
     page_icon="📊",
     initial_sidebar_state="expanded"
 )
-# ---- THEME SETUP (place right after st.set_page_config) ----
+import streamlit as st
 import streamlit.components.v1 as components
 
 def apply_theme(theme: str):
@@ -62,30 +62,62 @@ def apply_theme(theme: str):
       --border: #1d2330;
     }
 
+    /* App shell */
     .stApp { background: var(--bg); color: var(--text); }
 
-    /* Shared components */
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    /* Cards / modules */
     .module-card {
       background: var(--panel) !important;
       color: var(--text) !important;
       box-shadow: var(--shadow) !important;
       border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-top: 1.5rem;
     }
-    .module-title { color: var(--text) !important; }
-    .module-description { color: var(--muted) !important; }
+    .module-title { color: var(--text) !important; font-size: 28px; font-weight: 700; margin-bottom: .5rem; }
+    .module-description { color: var(--muted) !important; font-size: 16px; margin-bottom: 1.5rem; }
 
+    /* Buttons */
     div.stButton > button:first-child {
       background: var(--accent) !important;
       color: #fff !important;
       border: none !important;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all .2s ease-in-out;
     }
     div.stButton > button:first-child:hover {
-      filter: brightness(0.9); transform: scale(1.02);
+      filter: brightness(0.9);
+      transform: scale(1.02);
     }
 
-    section[data-testid="stSidebar"] {
+    /* Hero */
+    .hero-card {
       background: var(--panel);
-      border-right: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    .hero-title { color: var(--accent); font-size: 42px; font-weight: 800; margin-bottom: .5rem; }
+    .hero-subtitle { color: var(--text); font-size: 20px; margin-bottom: .5rem; }
+    .hero-quote { color: var(--muted); font-size: 16px; font-style: italic; margin-bottom: 1.5rem; }
+    .hero-list li { color: var(--text); font-size: 16px; margin-bottom: .5rem; }
+    .footer { text-align: center; font-size: 14px; color: var(--muted); margin-top: 4rem; }
+
+    /* Responsive padding */
+    @media screen and (max-width: 768px) {
+      .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
     }
     </style>
     """
@@ -100,69 +132,15 @@ def apply_theme(theme: str):
         height=0,
     )
 
+# one-time default
 if "theme" not in st.session_state:
     st.session_state.theme = "light"
 
-# Sidebar toggle goes near the top of the sidebar UI
+# Sidebar toggle (near top of sidebar)
 dark_on = st.sidebar.toggle("Dark mode", value=(st.session_state.theme == "dark"), key="dark_mode_toggle")
 st.session_state.theme = "dark" if dark_on else "light"
 apply_theme(st.session_state.theme)
 
-# === Global CSS Styling ===
-st.markdown("""
-<style>
-/* 🔵 Global Button Hover Effect */
-div.stButton > button:first-child {
-    background-color: #0d6efd;
-    color: white;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.3s ease-in-out;
-}
-
-div.stButton > button:first-child:hover {
-    background-color: #003d99;
-    transform: scale(1.04);
-}
-</style>
-""", unsafe_allow_html=True)
-# === Module Area Styling ===
-st.markdown("""
-<style>
-.module-card {
-    background-color: #f9f9f9;
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    margin-top: 1.5rem;
-}
-.module-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #222;
-    margin-bottom: 0.5rem;
-}
-.module-description {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 1.5rem;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-@media screen and (max-width: 768px) {
-    .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-    }
-    .css-1d391kg {
-        flex-direction: column !important;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
 
 st.sidebar.image("nijat_logo.png", width=150)
 # === Center Tagline Section ===

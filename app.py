@@ -172,7 +172,7 @@ T = TRANSLATIONS.get(language, TRANSLATIONS["en"])
 # === Fallback Translations ===
 def ensure_translation_keys(T):
     fallback = {
-        "select_module": "Select Module",
+        "": "Select Module",
         "login_button": "Login",
         "login_title": "Login",
         "username": "Username",
@@ -496,7 +496,7 @@ from modules.p6_scheduler import run as p6_scheduler
 
 # === Unified UI Layout ===
 st.title(T["title"])
-st.sidebar.subheader(T["select_module"])
+st.sidebar.subheader(T[""])
 
 GT = T.get("group_titles", {})
 # === Module Groups ===
@@ -720,8 +720,9 @@ if available_modules:
     module_map = dict(zip(module_labels, module_keys))
 
     # Safely get sidebar label for module selection
-    select_module_label = T.get("select_module", {}).get(language, "Select Module")
+    select_module_label = T["select_module"].get(language, "Select Module")
     selected_label = st.sidebar.radio(select_module_label, module_labels, key="modern_module")
+
 
     # Get selected module key and function
     selected_module = module_map[selected_label]

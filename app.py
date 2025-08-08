@@ -40,26 +40,18 @@ st.set_page_config(
 import streamlit as st
 import streamlit.components.v1 as components
 
+import streamlit.components.v1 as components
+
 def apply_theme(theme: str):
     css = """
     <style>
     :root{
-      --bg: #ffffff;
-      --panel: #f7f7f9;
-      --text: #111111;
-      --muted: #666666;
-      --accent: #0d6efd;
-      --shadow: 0 2px 12px rgba(0,0,0,0.08);
-      --border: #e7e7ee;
+      --bg:#ffffff; --panel:#f7f7f9; --text:#111111; --muted:#666666;
+      --accent:#0d6efd; --shadow:0 2px 12px rgba(0,0,0,0.08); --border:#e7e7ee;
     }
     html[data-theme="dark"]{
-      --bg: #0e1117;
-      --panel: #111826;
-      --text: #e6e6e6;
-      --muted: #b3b3b3;
-      --accent: #4e8cff;
-      --shadow: 0 2px 16px rgba(0,0,0,0.5);
-      --border: #1d2330;
+      --bg:#0e1117; --panel:#111826; --text:#e6e6e6; --muted:#b3b3b3;
+      --accent:#4e8cff; --shadow:0 2px 16px rgba(0,0,0,0.5); --border:#1d2330;
     }
 
     /* App shell */
@@ -67,53 +59,38 @@ def apply_theme(theme: str):
 
     /* Sidebar */
     section[data-testid="stSidebar"] {
-      background: var(--panel);
-      border-right: 1px solid var(--border);
-      color: var(--text);
+      background: var(--panel); border-right: 1px solid var(--border); color: var(--text);
     }
 
     /* Cards / modules */
     .module-card {
-      background: var(--panel) !important;
-      color: var(--text) !important;
-      box-shadow: var(--shadow) !important;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      margin-top: 1.5rem;
+      background: var(--panel) !important; color: var(--text) !important; box-shadow: var(--shadow) !important;
+      border: 1px solid var(--border); border-radius: 16px; padding: 2rem; margin-top: 1.5rem;
     }
     .module-title { color: var(--text) !important; font-size: 28px; font-weight: 700; margin-bottom: .5rem; }
     .module-description { color: var(--muted) !important; font-size: 16px; margin-bottom: 1.5rem; }
 
     /* Buttons */
     div.stButton > button:first-child {
-      background: var(--accent) !important;
-      color: #fff !important;
-      border: none !important;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all .2s ease-in-out;
+      background: var(--accent) !important; color: #fff !important; border: none !important;
+      border-radius: 8px; font-weight: 600; transition: all .2s ease-in-out;
     }
-    div.stButton > button:first-child:hover {
-      filter: brightness(0.9);
-      transform: scale(1.02);
-    }
+    div.stButton > button:first-child:hover { filter: brightness(0.9); transform: scale(1.02); }
 
     /* Hero */
-    .hero-card {
-      background: var(--panel);
-      color: var(--text);
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      margin: 2rem 0;
-    }
+    .hero-card { background: var(--panel); color: var(--text); box-shadow: var(--shadow);
+      border: 1px solid var(--border); border-radius: 16px; padding: 2rem; margin: 2rem 0; }
     .hero-title { color: var(--accent); font-size: 42px; font-weight: 800; margin-bottom: .5rem; }
     .hero-subtitle { color: var(--text); font-size: 20px; margin-bottom: .5rem; }
     .hero-quote { color: var(--muted); font-size: 16px; font-style: italic; margin-bottom: 1.5rem; }
     .hero-list li { color: var(--text); font-size: 16px; margin-bottom: .5rem; }
     .footer { text-align: center; font-size: 14px; color: var(--muted); margin-top: 4rem; }
+
+    /* Hide only GitHub icon */
+    header[data-testid="stHeader"] a[href*="github.com"] { display: none !important; }
+
+    /* Or hide the whole toolbar (Share, GitHub, menu) */
+    /* header[data-testid="stHeader"] .stToolbar { display: none !important; } */
 
     /* Responsive padding */
     @media screen and (max-width: 768px) {
@@ -121,6 +98,7 @@ def apply_theme(theme: str):
     }
     </style>
     """
+
     st.markdown(css, unsafe_allow_html=True)
     components.html(
         f"""

@@ -497,6 +497,7 @@ from modules.p6_scheduler import run as p6_scheduler
 st.title(T["title"])
 st.sidebar.subheader(T["select_module"])
 
+GT = T.get("group_titles", {})
 # === Module Groups ===
 group_modules = {
     GT.get("personal", "🧠 Personal Decisions"): {

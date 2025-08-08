@@ -39,8 +39,6 @@ st.set_page_config(
 )
 
 
-import streamlit.components.v1 as components
-
 def apply_theme(theme: str):
     css = """
     <style>
@@ -85,11 +83,13 @@ def apply_theme(theme: str):
     .hero-list li { color: var(--text); font-size: 16px; margin-bottom: .5rem; }
     .footer { text-align: center; font-size: 14px; color: var(--muted); margin-top: 4rem; }
 
-    /* 🔒 Hide only the GitHub icon in the header toolbar */
-    header[data-testid="stHeader"] a[href*="github.com"] { display: none !important; }
+    /* 🔒 Hide GitHub icon — all known selectors */
+    header[data-testid="stHeader"] a[href*="github.com"] { display:none !important; }
+    header[data-testid="stHeader"] a[title*="GitHub" i] { display:none !important; }
+    header[data-testid="stHeader"] button[title*="View source" i] { display:none !important; }
 
-    /* (Optional) Hide entire toolbar: Share / GitHub / overflow menu */
-    /* header[data-testid="stHeader"] .stToolbar { display: none !important; } */
+    /* Optional — hide entire toolbar (Share / GitHub / menu) */
+    /* header[data-testid="stHeader"] .stToolbar { display:none !important; } */
 
     /* Responsive padding */
     @media (max-width: 768px) {

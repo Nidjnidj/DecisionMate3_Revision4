@@ -714,8 +714,10 @@ if available_modules:
     module_keys = list(available_modules.keys())
 
     # Get translated module labels
-    modules_dict = T.get("modules", {})
-    module_labels = [modules_dict.get(k, {}).get(language, k) for k in module_keys]
+    from translations import TRANSLATIONS as ALL_TRANSLATIONS
+    lang_module_names = ALL_TRANSLATIONS.get("module_names", {}).get(language, {})
+    module_labels = [lang_module_names.get(k, k) for k in module_keys]
+
 
     # Create a reverse map from label → key
     module_map = dict(zip(module_labels, module_keys))

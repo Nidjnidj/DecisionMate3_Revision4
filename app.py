@@ -506,12 +506,12 @@ group_modules = {
         "GoalPlanner": goal_planner,
         "RentVsBuy": rent_vs_buy
     },
-    "📊 Business & Financial": {
+    GT.get("business", "📊 Business & Financial"): {
         "FinancialAnalysis": financial_analysis,
         "BreakEven": break_even,
         "CostEstimator": cost_estimator
     },
-"🛠️ Construction": {
+GT.get("construction", "🛠️ Construction"): {
     "MaterialEstimator": material_estimator,
     "ConcreteMixOptimizer": concrete_mix_optimizer,
     "ConcretePourLog": concrete_pour_log,
@@ -542,7 +542,7 @@ group_modules = {
     "WeatherImpactTracker": weather_impact_tracker
 
     },
-    "⛽ Reservoir Engineering": {
+    GT.get("reservoir", "⛽ Reservoir Engineering"): {
     "Volumetric Reserves Estimator": volumetric_reserves,
     "Decline Curve Analyzer": decline_curve,
     "Material Balance Calculator": material_balance,
@@ -553,7 +553,7 @@ group_modules = {
     # More modules coming soon
 },
 
-    "🏗️ Civil and Structural Engineering": {
+    GT.get("civil", "🏗️ Civil and Structural Engineering"): {
         "BeamSizeRecommender": beam_size_recommender,
         "ElevationSketch": elevation_sketch,
         "FoundationSelector": foundation_selector,
@@ -561,13 +561,13 @@ group_modules = {
         "StructuralLoadCalc": structural_load_calc,
         "StructuralLoadCalculator": structural_load_calculator
     },
-    "💡 Electrical": {
+    GT.get("electrical", "💡 Electrical"): {
         "CableSizing": cable_sizing,
         "PowerDemand": power_demand,
         "VoltageDrop": voltage_drop,
         "BreakerSelector": breaker_selector
     },
-    "🛡 HSE Management": {
+    GT.get("hse", "🛡 HSE Management"): {
     "RiskAssessmentMatrix": risk_assessment_matrix,
     "JSABuilder": jsa_builder,
     "PermitToWorkTracker": permit_to_work_tracker,
@@ -578,7 +578,7 @@ group_modules = {
     "HSEKPIDashboard": hse_kpi_dashboard
 },
 
-    "🧾 Quality Management": {
+    GT.get("quality", "🧾 Quality Management"): {
     "DMAICProjectTracker": dmaic_project_tracker,
     "ProcessCapabilityCalculator": process_capability_calculator,
     "RootCauseAnalysisTool": root_cause_analysis_tool,
@@ -596,14 +596,14 @@ group_modules = {
 
 },
 
-    "🎲 Instrumentation": {
+    GT.get("instrumentation", "🎲 Instrumentation"): {
         "SensorCalibration": sensor_calibration,
         "LoopCheckRegister": loop_check_register,
         "InstrumentSpecSheet": instrument_spec_sheet,
         "IoListGenerator": io_list_generator,
         "ControlNarrative": control_narrative
     },
-    "🔬 Simulation": {
+    GT.get("simulation", "🔬 Simulation"): {
         "CompressorEstimator": compressor_estimator,
         "FlashCalc": flash_calc,
         "MixerSplitter": mixer_splitter,
@@ -621,34 +621,34 @@ group_modules = {
         "HeaterCoolerSim": heater_cooler,  # ✅ matches the import
 
     },
-    "🗂️ Interface Management": {
+    GT.get("interface", "🗂️ Interface Management"): {
         "InterfaceMatrix": interface_matrix,
         "InterfaceRiskLog": interface_risk_log,
         "InterfaceReview": interface_review,
         "DisciplineOwnership": discipline_ownership,
         "InterdependencyTracker": interdependency_tracker
     },
-    "🧩 Stakeholder Management": {
+    GT.get("stakeholder", "🧩 Stakeholder Management"): {
         "StakeholderRegister": stakeholder_register,
         "EngagementPlan": engagement_plan,
         "FeedbackLog": feedback_log,
         "CommunicationTracker": communication_tracker,
         "InfluenceInterest": influence_interest
     },
-    "🧾 Procurement Management": {
+    GT.get("procurement", "🧾 Procurement Management"): {
         "BidEvaluation": bid_evaluation,
         "VendorReview": vendor_review,
         "SupplierRisk": supplier_risk,
         "ProcurementStrategy": procurement_strategy,
         "DeliveryTracker": delivery_tracker
     },
-    "🔍 Risk Management": {
+    GT.get("risk", "🔍 Risk Management"): {
         "Risk": risk,
         "IssueEscalation": issue_escalation,
         "BiasChecker": bias_checker,
         "WhatIf": what_if
     },
-    "📅 Planning": {
+    GT.get("planning", "📅 Planning"): {
         "CriticalPath": critical_path,
         "ScheduleDeveloper": schedule_developer,
         "SCurve": s_curve,
@@ -656,19 +656,19 @@ group_modules = {
         "📅 P6 Scheduler": p6_scheduler,
 
     },
-    "📜 Contracts": {
+    GT.get("contracts", "📜 Contracts"): {
         "ContractAnalyzer": contract_analyzer,
         "ContractsDevelopment": contract_development
 
     },
-    "🚀 Agile": {
+    GT.get("agile", "🚀 Agile"): {
         "KanbanBoard": kanban_board,
         "SprintPlanner": sprint_planner,
         "StandupNotes": standup_notes,
         "RetrospectiveBoard": retrospective_board,
         "BurndownChart": burndown_chart
     },
-    "🏠 Housing / Architecture": {
+    GT.get("housing", "🏠 Housing / Architecture"): {
         "HouseDraftingCanvas": house_drafting_canvas,
         "HouseLayoutPlanner": house_layout_planner,
         "RoomSizingEstimator": room_sizing_estimator,

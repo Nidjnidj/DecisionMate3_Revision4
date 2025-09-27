@@ -14,12 +14,10 @@ try:
 except Exception:
     LOTTIE_OK = False
 
-try:
-    import firebase_auth as fa   # your local file
-    import firebase_db as fdb    # your local file
-    FIREBASE_OK = True
-except Exception:
-    FIREBASE_OK = False
+# --- Auth completely disabled (guest mode only) ---
+FIREBASE_OK = False  # hard disable
+# (Optional) if you have firebase_db imports elsewhere, keep the try/except but don't use it.
+
 
 
 # ========= Utility =========
@@ -512,44 +510,28 @@ def render_frontdoor():
     _feature_chips()
     st.markdown("")
 
-    # Auth + Info
+    # Guest-only mode (no sign-in at all)
     auth_col, info_col = st.columns([1, 1])
     with auth_col:
-        email, password, wants_login = _login_block()
-        if wants_login:
-            if not email or not password:
-                st.warning("Please enter email and password.")
-            else:
-                uid = None
-                if FIREBASE_OK:
-                    try:
-                        user = fa.sign_in(email=email, password=password)
-                        uid = user.get("uid") or user.get("localId") or user.get("userId")
-                    except Exception as e:
-                        st.error(f"Login failed: {getattr(e, 'message', str(e))}")
-                        return
-                else:
-                    uid = "demo-user"
-
-                last_project, last_phase = _load_resume_pointer(uid)
-                st.session_state["auth_state"] = "user"
-                st.session_state["uid"] = uid
-                if last_project:
-                    st.session_state["current_project_id"] = last_project
-                if last_phase:
-                    st.session_state["current_phase_id"] = last_phase
-                st.success("Signed in. Loading your workspace…")
-                st.balloons()
+        st.subheader("Try DecisionMate")
+        st.info("Sign-in is disabled in this build. Explore instantly in Guest mode.")
+        c1, c2 = st.columns([0.6, 0.4])
+        with c1:
+            if st.button("Continue as Guest", use_container_width=True, key="dm_guest_only"):
+                st.session_state["auth_state"] = "guest"
+                st.session_state.setdefault("current_project_id", "P-DEMO")
+                st.session_state.setdefault("current_phase_id", "PH-FEL1")
+                st.success("Guest mode: your work won’t be saved.")
                 _rerun()
-
-        if _guest_block():
-            st.session_state["auth_state"] = "guest"
-            st.session_state.setdefault("current_project_id", "P-DEMO")
-            st.session_state.setdefault("current_phase_id", "PH-FEL1")
-            st.info("Guest mode: your work won’t be saved. Sign in anytime to keep progress.")
-            _rerun()
-
+        with c2:
+            # cute typing cat if you want to keep the animation
+            if LOTTIE_OK:
+                typing = load_lottie_cached("cat_typing.json")
+                if typing:
+                    st_lottie(typing, height=_anim_h(), key="dm_cat_guest_only")
+    
     _what_is_dm(info_col)
+
 
     # Footer + tips
     _guest_tip()

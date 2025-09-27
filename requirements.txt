@@ -1,55 +1,28 @@
 # --- Core UI ---
-streamlit
-<<<<<<< Updated upstream
-pyrebase4
-firebase-admin
-pandas
-numpy
-matplotlib
-plotly
-fpdf
-openpyxl
-networkx
-pyvis
-requests
-streamlit-lottie
-gcloud
-setuptools
-graphviz
-streamlit-drawable-canvas
-numpy_financial
-=======
-plotly
-Pillow
-graphviz
+streamlit>=1.37
+streamlit-lottie>=0.0.5
 
 # --- Data / utils ---
-numpy
+numpy>=1.26
 pandas>=2.0.0
 requests>=2.31.0
 pydantic>=1.10,<3
 
-# --- Firebase (if you use it) ---
-firebase-admin
-google-cloud-firestore
+# --- Visualization ---
+plotly>=5.22.0
+matplotlib>=3.8.0
+Pillow>=10.0.0
+graphviz>=0.20.3
+networkx>=3.2
+pyvis>=0.3.2
 
-# --- LLM providers ---
-google-generativeai>=0.7.0   # Gemini (free tier)
-
-# --- RAG (choose ONE backend; Chroma is easiest on Windows) ---
-chromadb>=0.5.4               # persistent vector store
-
-# If you really want FAISS instead of Chroma (NOT recommended on Windows):
-# faiss-cpu>=1.8.0.post1
-
-# --- Embeddings for RAG ---
-sentence-transformers>=3.0.0
-
-# --- Export / parsing ---
+# --- Files / export ---
+openpyxl>=3.1.2
+fpdf>=1.7.2
 python-docx>=0.8.11
 pdfplumber>=0.11.0
-fpdf
 
-streamlit-lottie
-
->>>>>>> Stashed changes
+# --- Optional AI features used by your codebase ---
+google-generativeai>=0.7.0
+sentence-transformers>=3.0.0
+chromadb>=0.5.4

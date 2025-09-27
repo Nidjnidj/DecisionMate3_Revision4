@@ -2,11 +2,28 @@ import streamlit as st
 from modules.unit_operations.pump import Pump
 from modules.unit_operations.pipe import Pipe
 from modules.unit_operations.separator import Separator
-from firebase_db import save_project, load_all_projects
+
 import graphviz
 from fpdf import FPDF
 import io
 import datetime
+import time
+
+from artifact_registry import get_latest, save_artifact
+
+# Try Firebase helpers; fall back to session memory
+try:
+    from firebase_db import save_project, load_all_projects
+except Exception:
+    def save_project(collection, doc_id, data):
+        buf = st.session_state.setdefault("_legacy_sims", {})
+        buf.setdefault(collection, {})
+        buf[collection][doc_id] = {"data": data, "saved_at": time.time()}
+        return {"key": f"{collection}__{doc_id}", "data": data}
+    def load_all_projects(collection):
+        buf = st.session_state.get("_legacy_sims", {}).get(collection, {})
+        return [{"id": k, "data": v["data"]} for k, v in buf.items() if k != "_index"]
+
 
 # === PDF Generator ===
 def generate_pdf(units):
@@ -25,14 +42,14 @@ def generate_pdf(units):
             for outlet_name, data in unit.outputs.items():
                 pdf.cell(200, 10, txt=f"{outlet_name}:", ln=True)
                 for key, value in data.items():
-                    if key == "composition":
+                    if key == "composition" and isinstance(value, dict):
                         comp_text = ", ".join([f"{k}: {v}" for k, v in value.items()])
                         pdf.cell(200, 8, txt=f"  Composition: {comp_text}", ln=True)
                     else:
                         pdf.cell(200, 8, txt=f"  {key}: {value}", ln=True)
         else:
-            for key, value in unit.outputs.items():
-                if key == "composition":
+            for key, value in (unit.outputs or {}).items():
+                if key == "composition" and isinstance(value, dict):
                     comp_text = ", ".join([f"{k}: {v}" for k, v in value.items()])
                     pdf.cell(200, 8, txt=f"  Composition: {comp_text}", ln=True)
                 else:
@@ -43,8 +60,57 @@ def generate_pdf(units):
 
 
 # === Main App Function ===
-def run(T):
-    st.title("🧪 Process Flow Simulation")
+def run(stage: str):
+    st.title("🧪 Process Flow Simulation (Legacy)")
+
+    # Project/phase IDs for Rev4
+    project_id = st.session_state.get("current_project_id", "P-DEMO")
+    phase_id   = st.session_state.get("current_phase_id", f"PH-{stage}")
+
+    # Read Subsurface artifact (Reservoir_Profiles)
+    rp   = get_latest(project_id, "Reservoir_Profiles", phase_id)
+    comp = (rp or {}).get("data", {}).get("composition", {})
+    cond = (rp or {}).get("data", {}).get("conditions", {})
+
+    # --- normalize composition from Subsurface to dicts {component: z} ---
+    def _to_z_map(obj, key_field="component", val_field="z"):
+        if obj is None:
+            return {}
+        if isinstance(obj, dict):
+            out = {}
+            for k, v in obj.items():
+                try:
+                    out[str(k)] = float(v)
+                except Exception:
+                    pass
+            return out
+        if isinstance(obj, list):
+            out = {}
+            for row in obj:
+                if isinstance(row, dict):
+                    k = row.get(key_field) or row.get("name") or row.get("comp")
+                    v = row.get(val_field) or row.get("value") or row.get("fraction")
+                    if k is not None and v is not None:
+                        try:
+                            out[str(k)] = float(v)
+                        except Exception:
+                            pass
+            return out
+        return {}
+
+    comp_raw = comp or {}
+    gas_z = _to_z_map(comp_raw.get("gas"))
+    oil_z = _to_z_map(comp_raw.get("oil"))
+    inj_z = _to_z_map(comp_raw.get("inj_gas"))
+    comp = {"gas": gas_z, "oil": oil_z, "inj_gas": inj_z}
+
+    # Defaults from conditions (best-effort)
+    default_T = float(cond.get("reservoir_T_C", 60))   # °C
+    default_P = float(cond.get("reservoir_P_bar", 20)) # bar
+
+    # Component choices for UI
+    default_components = list(gas_z.keys()) or ["Methane", "Ethane", "Propane", "Butane", "CO2", "H2S"]
+
     dot = graphviz.Digraph()
 
     if "process_units" not in st.session_state:
@@ -67,22 +133,24 @@ def run(T):
     st.markdown("### 📂 Load Past Simulations")
     all_sims = load_all_projects("process_simulations")
 
-    if all_sims:
-        dropdown_options = {
-            f"🗓️ {data.get('timestamp', key)}": key
-            for key, data in all_sims.items()
-        }
+    # Normalize to list of {"id": ..., "data": {...}}
+    sims = []
+    if isinstance(all_sims, list):
+        sims = all_sims
+    elif isinstance(all_sims, dict):
+        sims = [{"id": k, "data": v} for k, v in all_sims.items()]
 
-        selected_label = st.selectbox("Select a simulation to load", list(dropdown_options.keys()))
-        selected_sim = dropdown_options[selected_label]
-
+    if sims:
+        labels = [f"🗓️ {s['data'].get('timestamp', s['id'])} — {s['id']}" for s in sims]
+        selected_label = st.selectbox("Select a simulation to load", labels)
         if st.button("📥 Load Selected Simulation"):
-            sim_data = all_sims[selected_sim]
-            st.session_state.process_units = []
+            sel = sims[labels.index(selected_label)]
+            sim_data = sel["data"]
 
-            for unit_info in sim_data["units"]:
-                unit_type = unit_info["type"]
-                name = unit_info["name"]
+            st.session_state.process_units = []
+            for unit_info in sim_data.get("units", []):
+                unit_type = unit_info.get("type")
+                name = unit_info.get("name", unit_type)
 
                 if unit_type == "Pump":
                     unit = Pump(name)
@@ -93,8 +161,8 @@ def run(T):
                 else:
                     continue
 
-                unit.inputs = unit_info["inputs"]
-                unit.outputs = unit_info["outputs"]
+                unit.inputs = unit_info.get("inputs", {}) or {}
+                unit.outputs = unit_info.get("outputs", {}) or {}
                 st.session_state.process_units.append(unit)
 
             st.success(f"✅ Loaded simulation: {selected_label}")
@@ -102,31 +170,37 @@ def run(T):
 
     # === Inputs for Each Unit ===
     for unit in st.session_state.process_units:
+        # ensure keys exist
+        unit.inputs.setdefault("flowrate", 1000.0)
+        unit.inputs.setdefault("pressure", default_P)
+        unit.inputs.setdefault("temperature", default_T)
+        unit.inputs.setdefault("composition", {"Methane": 1.0})
+
         with st.expander(f"{unit.name} - Inputs"):
-            unit.inputs["flowrate"] = st.number_input(f"{unit.name} - Flowrate (kg/h)", value=unit.inputs["flowrate"])
-            unit.inputs["pressure"] = st.number_input(f"{unit.name} - Pressure (bar)", value=unit.inputs["pressure"])
-            unit.inputs["temperature"] = st.number_input(f"{unit.name} - Temperature (°C)", value=unit.inputs["temperature"])
+            unit.inputs["flowrate"] = st.number_input(f"{unit.name} - Flowrate (kg/h)", value=float(unit.inputs["flowrate"]))
+            unit.inputs["pressure"] = st.number_input(f"{unit.name} - Pressure (bar)", value=float(unit.inputs["pressure"]))
+            unit.inputs["temperature"] = st.number_input(f"{unit.name} - Temperature (°C)", value=float(unit.inputs["temperature"]))
 
             if hasattr(unit, "split_ratio"):
-                unit.split_ratio = st.slider(f"{unit.name} - Split Ratio (Outlet 1)", 0.0, 1.0, unit.split_ratio)
+                unit.split_ratio = st.slider(f"{unit.name} - Split Ratio (Outlet 1)", 0.0, 1.0, float(getattr(unit, "split_ratio", 0.5)))
 
             st.markdown(f"**{unit.name} - Select Components**")
-            available_components = ["Methane", "Ethane", "Propane", "Butane", "CO2", "H2S"]
+            available_components = default_components
             selected_components = st.multiselect(
                 f"Select components for {unit.name}",
                 options=available_components,
-                default=list(unit.inputs.get("composition", {"Methane": 1.0}).keys()),
+                default=list((unit.inputs.get("composition") or {"Methane": 1.0}).keys()),
                 key=f"{unit.name}_select"
             )
 
             comp_data = [
-                {"Component": comp, "Fraction": unit.inputs.get("composition", {}).get(comp, 0.0)}
-                for comp in selected_components
+                {"Component": c, "Fraction": float((unit.inputs.get("composition") or {}).get(c, 0.0))}
+                for c in selected_components
             ]
             comp_df = st.data_editor(comp_data, key=f"{unit.name}_composition")
 
             unit.inputs["composition"] = {
-                row["Component"]: row["Fraction"]
+                row["Component"]: float(row["Fraction"])
                 for row in comp_df if row["Component"] in selected_components
             }
 
@@ -145,10 +219,10 @@ def run(T):
 
         for idx, unit in enumerate(st.session_state.process_units):
             if idx != 0 and previous_output:
-                unit.inputs["flowrate"] = previous_output.get("flowrate", 0)
-                unit.inputs["pressure"] = previous_output.get("pressure", 0)
-                unit.inputs["temperature"] = previous_output.get("temperature", 0)
-                unit.inputs["composition"] = previous_output.get("composition", {"Methane": 1.0})
+                unit.inputs["flowrate"] = previous_output.get("flowrate", unit.inputs["flowrate"])
+                unit.inputs["pressure"] = previous_output.get("pressure", unit.inputs["pressure"])
+                unit.inputs["temperature"] = previous_output.get("temperature", unit.inputs["temperature"])
+                unit.inputs["composition"] = previous_output.get("composition", unit.inputs["composition"])
 
             unit.calculate()
             previous_output = unit.outputs
@@ -180,23 +254,66 @@ def run(T):
                 mime="application/pdf"
             )
 
-            # === Save to Firebase ===
+            # Save a copy of the run (cloud or session)
             sim_data = {
                 "timestamp": datetime.datetime.utcnow().isoformat(),
                 "user": st.session_state.get("user", "guest"),
-                "units": []
+                "units": [{
+                    "name": u.name,
+                    "type": type(u).__name__,
+                    "inputs": u.inputs,
+                    "outputs": u.outputs
+                } for u in st.session_state.process_units]
             }
-
-            for unit in st.session_state.process_units:
-                sim_data["units"].append({
-                    "name": unit.name,
-                    "type": type(unit).__name__,
-                    "inputs": unit.inputs,
-                    "outputs": unit.outputs
-                })
-
             save_project("process_simulations", f"sim_{datetime.datetime.utcnow().timestamp()}", sim_data)
-            st.success("✅ Simulation saved to cloud.")
+            st.success("✅ Simulation saved.")
+
+        # --- Rev4 artifacts from legacy run ---
+        # 1) Equipment_List
+        equip_items = [{
+            "tag": u.name,
+            "type": type(u).__name__,
+            "service": getattr(u, "service", ""),
+        } for u in st.session_state.process_units]
+        # Equipment_List
+        # After simulation, aggregate utilities from all units
+        heating_MW = sum(
+            u.outputs.get("heating_MW", 0)
+            for u in st.session_state.process_units
+            if isinstance(u.outputs, dict)
+        )
+        electrical_MW = sum(
+            u.outputs.get("electrical_MW", 0)
+            for u in st.session_state.process_units
+            if isinstance(u.outputs, dict)
+        )
+
+        save_artifact(project_id, phase_id, "Engineering", "Utilities_Load",
+            {"origin": "simulation", "heating_MW": heating_MW, "electrical_MW": electrical_MW},
+            status="Approved")
+        # PFD_Package
+        pkg = {
+            "origin": "simulation",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "user": st.session_state.get("user", "guest"),
+            "units": [  # list of unit operation summaries
+                {
+                    "name": u.name,
+                    "type": type(u).__name__,
+                    "inputs": u.inputs,
+                    "outputs": u.outputs
+                } for u in st.session_state.process_units
+            ],
+            "flow_diagram": dot.source,  # Graphviz DOT source (optional)
+            "equipment_list": equip_items,  # already built above
+            "conditions": cond,  # reservoir/process conditions if relevant
+            # Add any other summary stats, e.g. total flow, total energy, etc.
+        }
+
+
+
+
+        st.success("Rev4 artifacts saved: Equipment_List, PFD_Package, Utilities_Load.")
 
         # === Reset Button ===
         if st.button("🔁 Reset Simulation"):

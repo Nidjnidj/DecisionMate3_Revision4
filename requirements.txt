@@ -1,4 +1,6 @@
+# --- Core UI ---
 streamlit
+<<<<<<< Updated upstream
 pyrebase4
 firebase-admin
 pandas
@@ -16,3 +18,38 @@ setuptools
 graphviz
 streamlit-drawable-canvas
 numpy_financial
+=======
+plotly
+Pillow
+graphviz
+
+# --- Data / utils ---
+numpy
+pandas>=2.0.0
+requests>=2.31.0
+pydantic>=1.10,<3
+
+# --- Firebase (if you use it) ---
+firebase-admin
+google-cloud-firestore
+
+# --- LLM providers ---
+google-generativeai>=0.7.0   # Gemini (free tier)
+
+# --- RAG (choose ONE backend; Chroma is easiest on Windows) ---
+chromadb>=0.5.4               # persistent vector store
+
+# If you really want FAISS instead of Chroma (NOT recommended on Windows):
+# faiss-cpu>=1.8.0.post1
+
+# --- Embeddings for RAG ---
+sentence-transformers>=3.0.0
+
+# --- Export / parsing ---
+python-docx>=0.8.11
+pdfplumber>=0.11.0
+fpdf
+
+streamlit-lottie
+
+>>>>>>> Stashed changes

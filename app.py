@@ -83,6 +83,26 @@ try:
 except Exception:
     from dependencies import PRODUCER
 
+import streamlit as st
+
+st.set_page_config(
+    page_title="DecisionMate3",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Hide "View source" and GitHub link
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+    .viewerBadge_link__qRIco {display: none;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Minimal translations dict many Rev-3 tools expect
 REV3_T = {

@@ -19,7 +19,6 @@ FIREBASE_OK = False  # hard disable
 # (Optional) if you have firebase_db imports elsewhere, keep the try/except but don't use it.
 
 
-
 # ========= Utility =========
 ANIM_H = 180  # unified desktop/tablet animation height
 MOBILE_ANIM_H = 150
@@ -57,6 +56,11 @@ def load_lottie_cached(fname: str) -> Optional[dict]:
 
 def _anim_h() -> int:
     return MOBILE_ANIM_H if st.session_state.get("is_mobile") else ANIM_H
+
+# ========= Nav State =========
+def _init_state():
+    st.session_state.setdefault("nav_open", False)
+    st.session_state.setdefault("current_page", "Home")
 
 
 # ========= Theme / CSS =========
@@ -113,20 +117,17 @@ def _theme_css():
   section[data-testid="stSidebar"] > div {
     background:#F3F6FC !important; border-right:1px solid var(--dm-border);
   }
-/* Center the app icon in the sidebar */
-section[data-testid="stSidebar"] img {
-  display:block;
-  margin:8px auto;      /* center horizontally */
-}
+  /* Center the app icon in the sidebar */
+  section[data-testid="stSidebar"] img { display:block; margin:8px auto; }
 
-/* Helper class to center content inside cards */
-.dm-center { display:flex; justify-content:center; align-items:center; }
+  /* Helper class to center content inside cards */
+  .dm-center { display:flex; justify-content:center; align-items:center; }
 
-/* Slightly larger brand logo for better balance */
-.brand-logo { width:80px; height:80px; border-radius:10px; object-fit:contain; }
-@media (max-width: 768px) {
-  .brand-logo { width:64px; height:64px; }
-}
+  /* Slightly larger brand logo for better balance */
+  .brand-logo { width:80px; height:80px; border-radius:10px; object-fit:contain; }
+  @media (max-width: 768px) {
+    .brand-logo { width:64px; height:64px; }
+  }
 
   /* HERO */
   .dm-hero {
@@ -274,19 +275,15 @@ def _hero():
             with cM:
                 st.image(asset_path("decisionmate.png"), width=70)
 
+    # ---- Open/Close nav button (state-driven, no JS) ----
     with st.container():
-        if st.button("☰ Open Navigation", use_container_width=True):
-            st.markdown(
-                """
-                <script>
-                  const doc = window.parent.document;
-                  const btn = doc.querySelector('button[title="Toggle sidebar"]');
-                  const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
-                  if (btn && sidebar && sidebar.getAttribute('aria-expanded') !== 'true') btn.click();
-                </script>
-                """,
-                unsafe_allow_html=True,
-            )
+        if st.button(
+            "☰ Open navigation" if not st.session_state["nav_open"] else "✖ Close navigation",
+            use_container_width=True,
+            key="btn_nav_toggle",
+        ):
+            st.session_state["nav_open"] = not st.session_state["nav_open"]
+            _rerun()
 
 def _announcement(text="✨ Rev4 adds AI Benchmarking, polished front door, and guest mode!"):
     st.markdown(
@@ -507,37 +504,31 @@ def render_frontdoor():
         initial_sidebar_state="expanded",
     )
 
-    # <--- add this block here
-    st.markdown(
-        """
-        <script>
-        const openSidebar = () => {
-          const doc = window.parent.document;
-          const btn = doc.querySelector('button[title="Toggle sidebar"]');
-          const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
-          if (btn && sidebar && sidebar.getAttribute('aria-expanded') !== 'true') {
-            btn.click();
-          }
-        };
-        setTimeout(openSidebar, 400);
-        setTimeout(openSidebar, 900);
-        setTimeout(openSidebar, 1600);
-        window.addEventListener('resize', () => setTimeout(openSidebar, 300));
-        </script>
-        """,
-        unsafe_allow_html=True,
-    )
-    # ---
+    _init_state()   # <-- initialize nav + page state early
     _theme_css()
-
 
     if "is_mobile" not in st.session_state:
         st.session_state["is_mobile"] = False  # simple default
 
-    # Sidebar branding (app icon)
+    # Sidebar branding + NAV
     with st.sidebar:
         st.image(asset_path("decisionmate.png"), caption="DecisionMate", use_container_width=True)
         st.markdown("<div class='dm-note'>Decision Intelligence Toolkit</div>", unsafe_allow_html=True)
+
+        # Actual nav (renders only when nav_open = True)
+        if st.session_state["nav_open"]:
+            page = st.radio(
+                "Go to",
+                ["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"],
+                index=["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"]
+                      .index(st.session_state["current_page"]),
+                key="nav_radio_main",
+            )
+            if page != st.session_state["current_page"]:
+                st.session_state["current_page"] = page
+                _rerun()
+        else:
+            st.caption("Use “☰ Open navigation” to access modules.")
 
     # HERO + info + quick access
     _hero()
@@ -567,9 +558,32 @@ def render_frontdoor():
                 typing = load_lottie_cached("cat_typing.json")
                 if typing:
                     st_lottie(typing, height=_anim_h(), key="dm_cat_guest_only")
-    
     _what_is_dm(info_col)
 
+    # --- Simple router (keeps front door intact) ---
+    page = st.session_state["current_page"]
+    if page == "AI Optimizer":
+        try:
+            from ai import ai_optimizer
+            ai_optimizer.render()
+            st.stop()
+        except Exception:
+            st.warning("AI Optimizer module not available.")
+    elif page == "AI Benchmarking":
+        try:
+            from ai import ai_benchmarking
+            ai_benchmarking.render()
+            st.stop()
+        except Exception:
+            st.warning("AI Benchmarking module not available.")
+    elif page == "PM Analytics":
+        try:
+            from ai import ai_pm_analytics
+            ai_pm_analytics.render()
+            st.stop()
+        except Exception:
+            st.warning("AI PM Analytics module not available.")
+    # Home / Settings: remain on the front door for now (optional to implement)
 
     # Footer + tips
     _guest_tip()

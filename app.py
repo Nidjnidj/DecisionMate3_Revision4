@@ -71,7 +71,7 @@ def _rerun():
     if hasattr(st, "rerun"):
         st.rerun()
     else:  # for older Streamlit
-        _rerun()
+        st.experimental_rerun()
 # Rev3 core fallbacks
 try:
     from decisionmate_core.artifact_service import ArtifactService
@@ -103,6 +103,11 @@ hide_streamlit_style = """
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+# --- Front door gating (run this BEFORE any UI builds) ---
+if st.session_state.get("auth_state") not in ("user", "guest"):
+    # Only app.py should call set_page_config. Make sure frontdoor.py does NOT call it.
+    render_frontdoor()
+    st.stop()
 
 # Minimal translations dict many Rev-3 tools expect
 REV3_T = {
@@ -451,8 +456,7 @@ if _choice != st.session_state["view"]:
 # after:
 # _choice = st.sidebar.radio(...)
 
-if st.session_state.get("auth_state") not in ("user", "guest"):
-    render_frontdoor(); st.stop()  # NEW
+
 
 # === Module view router (needed for go_to_module) ===
 if st.session_state.get("active_view") == "module":

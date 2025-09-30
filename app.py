@@ -729,35 +729,40 @@ def _render_ops_hub(industry: str, ops_mode: str) -> bool:
 
     return False
 
+# === Ops Hub view (clean, single-pass; no unreachable code) ===
 if st.session_state.get("view") == "Ops Hub":
-    # --- Sidebar: context & projects ---
     with st.sidebar:
         st.markdown("### Context")
 
+        # Industry selector (keeps state aligned)
+        ops_ind_choices = _industry_choices()
+        ops_ind_default = (
+            ops_ind_choices.index(st.session_state.get("project_industry", "oil_gas"))
+            if st.session_state.get("project_industry") in ops_ind_choices else 0
+        )
         ops_ind = st.selectbox(
             "Ops Industry",
-            _industry_choices(),
-            index=(_industry_choices().index(st.session_state.get("project_industry", "oil_gas"))
-                if st.session_state.get("project_industry") in _industry_choices() else 0),
+            ops_ind_choices,
+            index=ops_ind_default,
             key="ops_industry_select",
         )
         st.session_state["industry"] = ops_ind
         st.session_state["project_industry"] = ops_ind
 
-
         st.markdown("### Mode")
         ops_mode = st.radio(
             "Sub-mode",
-            getattr(TAXONOMY, "ops_modes", ["daily_ops","small_projects","call_center"]),
+            getattr(TAXONOMY, "ops_modes", ["daily_ops", "small_projects", "call_center"]),
             key="ops_mode",
-            horizontal=True
+            horizontal=True,
         )
 
         st.markdown("### Projects")
         new_ops_name = st.text_input("New Daily Ops project name", key="new_ops_proj_name")
         if st.button("Create Ops Project", use_container_width=True, key="btn_create_ops_proj"):
-            pid = _ops_slug(new_ops_name)
-            _ops_save_project(pid, new_ops_name or pid, ops_ind)
+            name = new_ops_name.strip() or f"Daily Ops {int(time.time())}"
+            pid = _ops_slug(name)
+            _ops_save_project(pid, name, ops_ind)
             _ops_lock(pid, ops_ind)
             _safe_rerun()
 
@@ -767,78 +772,40 @@ if st.session_state.get("view") == "Ops Hub":
             _ops_lock(sel, _ops_projects()[sel]["industry"])
 
         if st.button("Reset (unlock)", key="ops_reset"):
-            for k in ("active_namespace","active_project_id","current_project_id","current_phase_id"):
+            for k in ("active_namespace", "active_project_id", "current_project_id", "current_phase_id"):
                 st.session_state.pop(k, None)
             _safe_rerun()
-# Ensure IDs for ops even if no project is selected
+
+    # === Ensure IDs even if no project selected ===
     PHASE_CODE = "OPS_DAILY"
-    industry = st.session_state.get("project_industry", ops_ind).lower()
+    industry = (st.session_state.get("project_industry", ops_ind) or "oil_gas").lower()
     st.session_state.setdefault("current_project_id", "OPS-DEMO")
     st.session_state.setdefault("current_phase_id", _ops_day_phase_id())
 
-    # Render the selected Ops sub-mode using the tolerant router
-    if not _render_ops_hub(industry, st.session_state.get("ops_mode", "daily_ops")):
-        # Fallback: generic requirements page if the hub didn't render
-        render_requirements(industry, PHASE_CODE)
+    # === Try to render the industry-specific Ops Hub ===
+    rendered = _render_ops_hub(industry, st.session_state.get("ops_mode", "daily_ops"))
 
-    st.stop()  # prevent the rest of the page from drawing twice
-
-    # --- Ensure IDs even if no project selected ---
-    industry  = (st.session_state.get("project_industry") or st.session_state.get("industry") or "oil_gas").lower()
-    project_id = st.session_state.get("current_project_id") or "OPS-DEMO"
-    st.session_state["current_project_id"] = project_id
-    phase_code = "OPS_DAILY"         # only used by the generic fallback
-    phase_id   = st.session_state.get("current_phase_id") or _ops_day_phase_id()
-    st.session_state["current_phase_id"] = phase_id
-
-    # Human-friendly title per submode
-    _MODE_TITLE = {
-        "daily_ops": "Daily Ops",
-        "small_projects": "Small Projects",
-        "call_center": "Call Center",
-    }
-    mode_title = _MODE_TITLE.get(st.session_state.get("ops_mode","daily_ops"),
-                                 st.session_state.get("ops_mode","daily_ops").replace("_"," ").title())
-
-    st.markdown(f"## 🛢️ {mode_title} — {industry.replace('_',' ').title()}")
-
-    # --- Try to render the industry-specific Ops Hub module ---
-    import importlib
-    module_name = f"workflows.ops_hub_{industry}"
-    rendered = False
-    try:
-        mod = importlib.import_module(module_name)
-        if hasattr(mod, "render"):
-            # Prefer render(T={...}); fall back to render(industry=..., submode=...)
-            try:
-                mod.render({"ops_mode": st.session_state["ops_mode"], "industry": industry})
-            except TypeError:
-                mod.render(industry=industry, submode=st.session_state["ops_mode"])
-            rendered = True
-    except Exception as _e:
-        # optional: uncomment to debug
-        # st.exception(_e)
-        pass
-
-    # --- Fallback: generic OPS_DAILY requirements if the module is missing or errored ---
+    # === Fallback: generic requirements for OPS_DAILY ===
     if not rendered:
         st.info("Showing generic Ops requirements (no industry-specific module found or module errored).")
-        render_requirements(industry, phase_code)
+        render_requirements(industry, PHASE_CODE)
 
+        # (Optional) tiny demo actions
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Seed Well Plan (Draft)"):
-                save_artifact(project_id, phase_id, "Subsurface", "Well_Plan", {"auto": True}, status="Draft")
+            if st.button("Seed Well Plan (Draft)", key="ops_seed_wp"):
+                save_artifact(st.session_state["current_project_id"], st.session_state["current_phase_id"],
+                              "Subsurface", "Well_Plan", {"auto": True}, status="Draft")
                 _safe_rerun()
         with c2:
-            if st.button("Approve Latest Well Plan (Trigger Requests)"):
-                rec = get_latest(project_id, "Well_Plan", phase_id)
+            if st.button("Approve Latest Well Plan", key="ops_approve_wp"):
+                rec = get_latest(st.session_state["current_project_id"], "Well_Plan", st.session_state["current_phase_id"])
                 if rec:
-                    approve_artifact(project_id, rec["artifact_id"])
+                    approve_artifact(st.session_state["current_project_id"], rec["artifact_id"])
                     _safe_rerun()
 
-    # Dispatch any events (safe no-op if none)
-    drain_events(project_id)
+    # Dispatch any events and stop the page so the rest doesn't double-render
+    drain_events(st.session_state["current_project_id"])
     st.stop()
 
 

@@ -274,6 +274,19 @@ def _hero():
             with cM:
                 st.image(asset_path("decisionmate.png"), width=70)
 
+    with st.container():
+        if st.button("☰ Open Navigation", use_container_width=True):
+            st.markdown(
+                """
+                <script>
+                  const doc = window.parent.document;
+                  const btn = doc.querySelector('button[title="Toggle sidebar"]');
+                  const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+                  if (btn && sidebar && sidebar.getAttribute('aria-expanded') !== 'true') btn.click();
+                </script>
+                """,
+                unsafe_allow_html=True,
+            )
 
 def _announcement(text="✨ Rev4 adds AI Benchmarking, polished front door, and guest mode!"):
     st.markdown(
@@ -487,11 +500,36 @@ def _footer():
 
 # ========= Entry =========
 def render_frontdoor():
-    st.set_page_config(page_title="DecisionMate — Welcome",
-                       page_icon=asset_path("decisionmate.png"),
-                       layout="wide")
+    st.set_page_config(
+        page_title="DecisionMate — Welcome",
+        page_icon=asset_path("decisionmate.png"),
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
 
+    # <--- add this block here
+    st.markdown(
+        """
+        <script>
+        const openSidebar = () => {
+          const doc = window.parent.document;
+          const btn = doc.querySelector('button[title="Toggle sidebar"]');
+          const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+          if (btn && sidebar && sidebar.getAttribute('aria-expanded') !== 'true') {
+            btn.click();
+          }
+        };
+        setTimeout(openSidebar, 400);
+        setTimeout(openSidebar, 900);
+        setTimeout(openSidebar, 1600);
+        window.addEventListener('resize', () => setTimeout(openSidebar, 300));
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+    # ---
     _theme_css()
+
 
     if "is_mobile" not in st.session_state:
         st.session_state["is_mobile"] = False  # simple default

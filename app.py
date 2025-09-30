@@ -1,12 +1,3 @@
-# ===================== app.py — DecisionMate Rev4 (human-in-the-loop) =====================
-# Single-file app with:
-# - Robust modules import
-# - Manual cascade (no automatic downstream generation)
-# - Action Center for Pending approvals
-# - Swimlane + Gate check
-# - FEL Governance (team, reviewers, approvers, deliverables, artifact status, gate move)
-# - Resilient Firebase init
-
 import json, hashlib, time, sys, pathlib
 from typing import Dict, Any, Optional, Callable
 import importlib.util

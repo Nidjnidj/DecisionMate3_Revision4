@@ -497,12 +497,6 @@ def _footer():
 
 # ========= Entry =========
 def render_frontdoor():
-    st.set_page_config(
-        page_title="DecisionMate — Welcome",
-        page_icon=asset_path("decisionmate.png"),
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
 
     _init_state()   # <-- initialize nav + page state early
     _theme_css()

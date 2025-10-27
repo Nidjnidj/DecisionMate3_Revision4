@@ -63,6 +63,12 @@ def _rerun():
         st.rerun()
     else:  # for older Streamlit
         st.experimental_rerun()
+
+def _toggle_nav():
+    """Toggle nav_open flag and rerun."""
+    st.session_state["nav_open"] = not st.session_state.get("nav_open", False)
+    _rerun()
+
 # Rev3 core fallbacks
 try:
     from decisionmate_core.artifact_service import ArtifactService

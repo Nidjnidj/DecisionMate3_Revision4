@@ -8,12 +8,6 @@ from typing import Optional, Tuple
 import streamlit as st
 
 # ---------- Page config (must be one of the first Streamlit calls) ----------
-st.set_page_config(
-    page_title="DecisionMate",
-    page_icon="⚙️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 
 # ---- Optional deps (handled gracefully) ----
 try:

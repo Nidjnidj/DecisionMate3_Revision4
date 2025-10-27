@@ -34,6 +34,9 @@ def _rerun():
         st.rerun()
     else:
         st.experimental_rerun()
+def _toggle_nav():
+    st.session_state["nav_open"] = not st.session_state.get("nav_open", False)
+    _rerun()
 
 def asset_path(*parts: str) -> str:
     """Resolve assets from project root first, then /mnt/data fallback."""
@@ -285,13 +288,13 @@ def _hero():
 
     # ---- Open/Close nav button (state-driven, no JS) ----
     with st.container():
-        if st.button(
+        st.button(
             "☰ Open navigation" if not st.session_state["nav_open"] else "✖ Close navigation",
             use_container_width=True,
             key="btn_nav_toggle",
-        ):
-            st.session_state["nav_open"] = not st.session_state["nav_open"]
-            _rerun()
+            on_click=_toggle_nav,
+        )
+
 
 def _announcement(text="✨ Rev4 adds AI Benchmarking, polished front door, and guest mode!"):
     st.markdown(
@@ -516,6 +519,12 @@ def render_frontdoor():
     with st.sidebar:
         st.image(asset_path("decisionmate.png"), caption="DecisionMate", use_container_width=True)
         st.markdown("<div class='dm-note'>Decision Intelligence Toolkit</div>", unsafe_allow_html=True)
+        st.button(
+            "✖ Close navigation" if st.session_state.get("nav_open") else "☰ Open navigation",
+            key="btn_nav_sidebar_toggle_frontdoor",
+            use_container_width=True,
+            on_click=_toggle_nav,
+        )
 
         # Actual nav (renders only when nav_open = True)
         if st.session_state["nav_open"]:

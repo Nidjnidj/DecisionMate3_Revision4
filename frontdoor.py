@@ -7,6 +7,14 @@ from typing import Optional, Tuple
 
 import streamlit as st
 
+# ---------- Page config (must be one of the first Streamlit calls) ----------
+st.set_page_config(
+    page_title="DecisionMate",
+    page_icon="⚙️",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 # ---- Optional deps (handled gracefully) ----
 try:
     from streamlit_lottie import st_lottie  # pip install streamlit-lottie
@@ -17,6 +25,10 @@ except Exception:
 # --- Auth completely disabled (guest mode only) ---
 FIREBASE_OK = False  # hard disable
 # (Optional) if you have firebase_db imports elsewhere, keep the try/except but don't use it.
+# try:
+#     import firebase_db as fdb
+# except Exception:
+#     fdb = None
 
 
 # ========= Utility =========
@@ -38,6 +50,7 @@ def asset_path(*parts: str) -> str:
         p2 = Path("/mnt/data").joinpath(parts[0])
         if p2.exists():
             return str(p2)
+    # last-resort: name only under /mnt/data
     return str(Path("/mnt/data").joinpath(parts[-1]))
 
 def _load_lottie_raw(fname: str) -> Optional[dict]:
@@ -61,6 +74,7 @@ def _anim_h() -> int:
 def _init_state():
     st.session_state.setdefault("nav_open", False)
     st.session_state.setdefault("current_page", "Home")
+    st.session_state.setdefault("theme", "light")
 
 
 # ========= Theme / CSS =========
@@ -207,7 +221,7 @@ def _save_resume_pointer(uid: str, project_id: Optional[str], phase_id: Optional
     if not (FIREBASE_OK and uid):
         return
     try:
-        fdb.save_user_state(uid=uid, data={"last_project_id": project_id, "last_phase_id": phase_id})
+        fdb.save_user_state(uid=uid, data={"last_project_id": project_id, "last_phase_id": phase_id})  # noqa: F821
     except Exception:
         pass
 
@@ -215,7 +229,7 @@ def _load_resume_pointer(uid: str) -> Tuple[Optional[str], Optional[str]]:
     if not (FIREBASE_OK and uid):
         return (None, None)
     try:
-        data = fdb.load_user_state(uid=uid) or {}
+        data = fdb.load_user_state(uid=uid) or {}  # noqa: F821
         return data.get("last_project_id"), data.get("last_phase_id")
     except Exception:
         return (None, None)
@@ -279,7 +293,7 @@ def _hero():
     with st.container():
         if st.button(
             "☰ Open navigation" if not st.session_state["nav_open"] else "✖ Close navigation",
-            width="stretch",
+            use_container_width=True,
             key="btn_nav_toggle",
         ):
             st.session_state["nav_open"] = not st.session_state["nav_open"]
@@ -317,7 +331,7 @@ def _resume_card():
                 unsafe_allow_html=True,
             )
         with cols[1]:
-            if st.button("▶ Resume", width="stretch", key="resume_btn"):
+            if st.button("▶ Resume", use_container_width=True, key="resume_btn"):
                 if p:
                     st.session_state["current_project_id"] = p
                 if ph:
@@ -402,7 +416,7 @@ def _industries_strip():
 def _feature_chips():
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("🚀 AI Optimizer", width="stretch"):
+        if st.button("🚀 AI Optimizer", use_container_width=True):
             try:
                 from ai import ai_optimizer
                 ai_optimizer.render()
@@ -410,7 +424,7 @@ def _feature_chips():
             except Exception:
                 st.warning("AI Optimizer module not available.")
     with c2:
-        if st.button("📊 AI Benchmarking", width="stretch"):
+        if st.button("📊 AI Benchmarking", use_container_width=True):
             try:
                 from ai import ai_benchmarking
                 ai_benchmarking.render()
@@ -418,7 +432,7 @@ def _feature_chips():
             except Exception:
                 st.warning("AI Benchmarking module not available.")
     with c3:
-        if st.button("📈 PM Analytics", width="stretch"):
+        if st.button("📈 PM Analytics", use_container_width=True):
             try:
                 from ai import ai_pm_analytics
                 ai_pm_analytics.render()
@@ -432,7 +446,7 @@ def _login_block() -> Tuple[Optional[str], Optional[str], bool]:
         email = st.text_input("Email", key="dm_login_email")
         password = st.text_input("Password", type="password", key="dm_login_pass")
         _ = st.checkbox("Remember me on this device", value=True, key="dm_remember")
-        submitted = st.form_submit_button("Sign in", width="stretch")
+        submitted = st.form_submit_button("Sign in", use_container_width=True)
         st.caption(
             "By signing in you agree to our Terms and Privacy Policy. "
             "To delete your account/data, contact support@your-domain.com."
@@ -444,7 +458,7 @@ def _guest_block() -> bool:
     g_left, g_right = st.columns([0.6, 0.4])
     clicked = False
     with g_left:
-        if st.button("Continue as Guest", width="stretch", key="dm_guest_btn"):
+        if st.button("Continue as Guest", use_container_width=True, key="dm_guest_btn"):
             clicked = True
     with g_right:
         if LOTTIE_OK:
@@ -506,7 +520,7 @@ def render_frontdoor():
 
     # Sidebar branding + NAV
     with st.sidebar:
-        st.image(asset_path("decisionmate.png"), caption="DecisionMate", width="stretch")
+        st.image(asset_path("decisionmate.png"), caption="DecisionMate", use_container_width=True)
         st.markdown("<div class='dm-note'>Decision Intelligence Toolkit</div>", unsafe_allow_html=True)
 
         # Actual nav (renders only when nav_open = True)
@@ -524,6 +538,23 @@ def render_frontdoor():
         else:
             st.caption("Use “☰ Open navigation” to access modules.")
 
+    # ===== Inline Navigation Fallback (appears in main area when nav_open=True) =====
+    if st.session_state.get("nav_open"):
+        st.markdown("<div class='dm-card'>", unsafe_allow_html=True)
+        st.markdown("#### Navigation", unsafe_allow_html=True)
+        page_inline = st.radio(
+            "Go to",
+            ["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"],
+            index=["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"]
+                  .index(st.session_state["current_page"]),
+            key="nav_radio_inline",
+            horizontal=False,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        if page_inline != st.session_state["current_page"]:
+            st.session_state["current_page"] = page_inline
+            _rerun()
+
     # HERO + info + quick access
     _hero()
     _resume_card()
@@ -540,7 +571,7 @@ def render_frontdoor():
         st.info("Sign-in is disabled in this build. Explore instantly in Guest mode.")
         c1, c2 = st.columns([0.6, 0.4])
         with c1:
-            if st.button("Continue as Guest", width="stretch", key="dm_guest_only"):
+            if st.button("Continue as Guest", use_container_width=True, key="dm_guest_only"):
                 st.session_state["auth_state"] = "guest"
                 st.session_state.setdefault("current_project_id", "P-DEMO")
                 st.session_state.setdefault("current_phase_id", "PH-FEL1")
@@ -584,14 +615,14 @@ def render_frontdoor():
     st.markdown("")
     colA, colB, colC = st.columns(3)
     with colA:
-        if st.button("📘 Docs / Learn More", width="stretch", key="dm_docs"):
+        if st.button("📘 Docs / Learn More", use_container_width=True, key="dm_docs"):
             st.toast("Docs section coming soon.")
     with colB:
-        if st.button("🌙 Toggle Theme", width="stretch", key="dm_theme"):
+        if st.button("🌙 Toggle Theme", use_container_width=True, key="dm_theme"):
             st.session_state["theme"] = "dark" if st.session_state.get("theme") != "dark" else "light"
             _rerun()
     with colC:
-        if st.button("🚀 Continue", width="stretch", key="dm_continue"):
+        if st.button("🚀 Continue", use_container_width=True, key="dm_continue"):
             uid = st.session_state.get("uid")
             if uid:
                 p, ph = _load_resume_pointer(uid)

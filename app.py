@@ -88,7 +88,6 @@ hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     .stDeployButton {display: none;}
     .viewerBadge_link__qRIco {display: none;}
     </style>
@@ -444,6 +443,27 @@ if _choice != st.session_state["view"]:
         st.rerun()
     except Exception:
         _rerun()
+
+# Inline navigation fallback (shows in main area if sidebar is collapsed)
+try:
+    nav_items_now = _nav_items_for_mode()
+    if st.session_state.get("view") not in nav_items_now:
+        st.session_state["view"] = nav_items_now[0]
+    st.markdown("<div class='dm-card'>", unsafe_allow_html=True)
+    st.markdown("#### Navigation (inline fallback)", unsafe_allow_html=True)
+    _choice_inline = st.radio(
+        "Navigate",
+        nav_items_now,
+        index=nav_items_now.index(st.session_state["view"]),
+        key="nav_radio_inline"
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+    if _choice_inline != st.session_state["view"]:
+        st.session_state["view"] = _choice_inline
+        _rerun()
+except Exception:
+    pass
+
 # after:
 # _choice = st.sidebar.radio(...)
 
@@ -1551,7 +1571,7 @@ def render_pipeline():
 # =============================================================================
 # Page config & session init
 # =============================================================================
-st.set_page_config(page_title="DecisionMate Rev4", layout="wide", page_icon="📊")
+# st.set_page_config(page_title="DecisionMate Rev4", layout="wide", page_icon="📊")
 
 if "active_view" not in st.session_state:  st.session_state.active_view = None
 if "module_info" not in st.session_state:  st.session_state.module_info = None
@@ -2007,14 +2027,8 @@ if st.session_state["view"] == "Ops Hub":
         st.stop()
 
     # Add industry selector for Ops Hub
-    ops_industry = st.selectbox(
-        "Ops Industry",
-        TAXONOMY.industries,
-        index=TAXONOMY.industries.index(st.session_state.get("industry", "oil_gas")),
-        key="ops_industry_select"
-    )
-    st.session_state["industry"] = ops_industry
-    st.session_state["project_industry"] = ops_industry
+    ops_industry = st.session_state.get("project_industry") or st.session_state.get("industry", "oil_gas")
+
 
     pretty = {
         "oil_gas": "Oil & Gas",
@@ -2125,92 +2139,6 @@ def open_ops_hub(industry: str, submode: str) -> bool:
     except Exception as e:
         st.error(f"Ops callable failed: {e}")
         return False
-# app.py
-import importlib, inspect
-import streamlit as st
-
-def open_ops_hub(industry: str, submode: str) -> bool:
-    """Open the Ops Hub for an industry and route special submodes (e.g., call_center)."""
-    try:
-        from services.industries import route as industries_route
-        module_path, entry = industries_route(industry, "ops")
-    except Exception as e:
-        st.error(f"Ops route error for {industry}: {e}")
-        return False
-
-    # --- Try the industry hub first
-    try:
-        mod = importlib.import_module(module_path)
-    except Exception as e:
-        st.error(f"Cannot import Ops module '{module_path}': {e}")
-        return False
-
-    candidates = [
-        getattr(mod, entry, None) if entry else None,
-        getattr(mod, "render", None),
-        getattr(mod, "run", None),
-    ]
-    if not any(callable(c) for c in candidates):
-        # try submode-named entries in the hub
-        sm = (submode or "daily_ops").strip()
-        candidates.extend([
-            getattr(mod, sm, None),
-            getattr(mod, f"render_{sm}", None),
-            getattr(mod, f"{sm}_view", None),
-        ])
-    fn = next((c for c in candidates if callable(c)), None)
-
-    # --- If hub doesn't implement 'call_center', route to the external tool
-    if not fn and (submode or "").strip() == "call_center":
-        try:
-            from ops_call_center import render as call_center_render
-            call_center_render(industry=industry, submode=submode)
-            st.caption("✅ Opened Call Center tool.")
-            return True
-        except Exception as e:
-            st.error(f"Call Center failed: {e}")
-            return False
-
-    if not fn:
-        st.error(
-            f"Ops Hub module '{module_path}' has no callable entry. "
-            f"Tried: {entry!r} → render → run → {submode} → render_{submode} → {submode}_view"
-        )
-        return False
-
-    # --- Call the hub entry with best-effort kwargs
-    try:
-        params = set(inspect.signature(fn).parameters.keys())
-    except Exception:
-        params = set()
-    if params:
-        kwargs = {}
-        if "industry" in params: kwargs["industry"] = industry
-        if "submode"  in params: kwargs["submode"]  = submode
-        if "mode"     in params: kwargs["mode"]     = submode
-        if "st"       in params: kwargs["st"]       = st
-        try:
-            fn(**kwargs)
-            return True
-        except TypeError:
-            pass
-
-    for args in [(), (submode,), (industry,), (industry, submode)]:
-        try:
-            fn(*args)
-            return True
-        except TypeError:
-            continue
-
-    try:
-        fn()
-        return True
-    except Exception as e:
-        st.error(f"Ops callable failed: {e}")
-        return False
-
-
-
 
 
 

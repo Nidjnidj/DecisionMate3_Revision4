@@ -65,9 +65,9 @@ def _rerun():
         st.experimental_rerun()
 
 def _toggle_nav():
-    """Toggle nav_open flag and rerun."""
     st.session_state["nav_open"] = not st.session_state.get("nav_open", False)
     _rerun()
+
 
 # Rev3 core fallbacks
 try:
@@ -1844,6 +1844,13 @@ def _industry_choices() -> list[str]:
 
 with st.sidebar:
     st.markdown("## Context")
+    st.button(
+        "✖ Close navigation" if st.session_state.get("nav_open") else "☰ Open navigation",
+        key="btn_nav_sidebar_toggle_app",
+        use_container_width=True,
+        on_click=_toggle_nav,
+    )
+
     # If a project is active and we know its industry, lock the dropdown
     industry_locked = bool(st.session_state.get("active_project_id")) and bool(st.session_state.get("project_industry"))
     if industry_locked:

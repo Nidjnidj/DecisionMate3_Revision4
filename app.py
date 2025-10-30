@@ -1612,8 +1612,9 @@ def render_pipeline():
 # =============================================================================
 # st.set_page_config(page_title="DecisionMate Rev4", layout="wide", page_icon="📊")
 
-if "active_view" not in st.session_state:  st.session_state.active_view = None
-    st.session_state.setdefault("auto_seed_ok", False)
+if "active_view" not in st.session_state:
+    st.session_state.active_view = None
+st.session_state.setdefault("auto_seed_ok", False)
 
 if "module_info" not in st.session_state:  st.session_state.module_info = None
 if "active_project_id" not in st.session_state: st.session_state.active_project_id = None

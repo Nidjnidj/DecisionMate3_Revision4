@@ -427,7 +427,30 @@ def _mode_from_view(view: str) -> str:
     if lock:
         return lock
     return "ops" if view == "Ops Hub" else "projects"
+# --- Fast Start helper: ensure there is an active project ---
+def _ensure_default_project(mode: str = "projects"):
+    username = st.session_state.get("username", "Guest")
+    industry = st.session_state.get("industry", "oil_gas")
+    ns = f"{industry}:projects" if mode == "projects" else f"{industry}:ops:{st.session_state.get('ops_mode','daily_ops')}"
 
+    if not st.session_state.get("active_project_id") or st.session_state.get("active_namespace") != ns:
+        try:
+            existing = list_projects(username, ns) or {}
+        except Exception:
+            existing = {}
+        if existing:
+            # open the first project found
+            pid = sorted(existing.keys())[0]
+        else:
+            # create a new one silently
+            pid = create_project(username, ns, "My First Project")
+            try:
+                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
+            except Exception:
+                pass
+        st.session_state.active_project_id = pid
+        st.session_state.active_namespace = ns
+        st.session_state.project_industry = industry
 NAV_ITEMS = _nav_items_for_mode()
 # Fast-start: auto-provision a project for the current group
 _ensure_default_project(_mode_from_view(st.session_state.get("view","PM Hub")))
@@ -748,30 +771,7 @@ def _render_ops_hub(industry: str, ops_mode: str) -> bool:
 
     return False
 
-# --- Fast Start helper: ensure there is an active project ---
-def _ensure_default_project(mode: str = "projects"):
-    username = st.session_state.get("username", "Guest")
-    industry = st.session_state.get("industry", "oil_gas")
-    ns = f"{industry}:projects" if mode == "projects" else f"{industry}:ops:{st.session_state.get('ops_mode','daily_ops')}"
 
-    if not st.session_state.get("active_project_id") or st.session_state.get("active_namespace") != ns:
-        try:
-            existing = list_projects(username, ns) or {}
-        except Exception:
-            existing = {}
-        if existing:
-            # open the first project found
-            pid = sorted(existing.keys())[0]
-        else:
-            # create a new one silently
-            pid = create_project(username, ns, "My First Project")
-            try:
-                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
-            except Exception:
-                pass
-        st.session_state.active_project_id = pid
-        st.session_state.active_namespace = ns
-        st.session_state.project_industry = industry
 
 # === Ops Hub view (clean, single-pass; no unreachable code) ===
 if st.session_state.get("view") == "Ops Hub":

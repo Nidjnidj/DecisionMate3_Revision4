@@ -100,10 +100,9 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # --- Front door gating (run this BEFORE any UI builds) ---
-if st.session_state.get("auth_state") not in ("user", "guest"):
-    # Only app.py should call set_page_config. Make sure frontdoor.py does NOT call it.
-    render_frontdoor()
-    st.stop()
+# --- Front door gating (auto-guest; no splash) ---
+st.session_state.setdefault("auth_state", "guest")
+# (Nothing else here; no render_frontdoor / st.stop)
 
 # Minimal translations dict many Rev-3 tools expect
 REV3_T = {
@@ -390,7 +389,7 @@ from data.firestore import list_projects, create_project, save_project_doc, load
 
 # ---- View routing (Hub vs Ops Hub vs Modules)
 if "view" not in st.session_state:
-    st.session_state["view"] = "PM Hub"  # default landing
+    st.session_state["view"] = "Workspace"  # default landing
 
 SHOW_PM_HUB = True  # keep PM Hub visible by default
 
@@ -430,6 +429,9 @@ def _mode_from_view(view: str) -> str:
     return "ops" if view == "Ops Hub" else "projects"
 
 NAV_ITEMS = _nav_items_for_mode()
+# Fast-start: auto-provision a project for the current group
+_ensure_default_project(_mode_from_view(st.session_state.get("view","PM Hub")))
+
 
 # keep current view if it still exists, else default to the first item
 current = st.session_state.get("view") or NAV_ITEMS[0]
@@ -745,6 +747,31 @@ def _render_ops_hub(industry: str, ops_mode: str) -> bool:
             pass
 
     return False
+
+# --- Fast Start helper: ensure there is an active project ---
+def _ensure_default_project(mode: str = "projects"):
+    username = st.session_state.get("username", "Guest")
+    industry = st.session_state.get("industry", "oil_gas")
+    ns = f"{industry}:projects" if mode == "projects" else f"{industry}:ops:{st.session_state.get('ops_mode','daily_ops')}"
+
+    if not st.session_state.get("active_project_id") or st.session_state.get("active_namespace") != ns:
+        try:
+            existing = list_projects(username, ns) or {}
+        except Exception:
+            existing = {}
+        if existing:
+            # open the first project found
+            pid = sorted(existing.keys())[0]
+        else:
+            # create a new one silently
+            pid = create_project(username, ns, "My First Project")
+            try:
+                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
+            except Exception:
+                pass
+        st.session_state.active_project_id = pid
+        st.session_state.active_namespace = ns
+        st.session_state.project_industry = industry
 
 # === Ops Hub view (clean, single-pass; no unreachable code) ===
 if st.session_state.get("view") == "Ops Hub":

@@ -453,7 +453,13 @@ def _ensure_default_project(mode: str = "projects"):
         st.session_state.project_industry = industry
 NAV_ITEMS = _nav_items_for_mode()
 # Fast-start: auto-provision a project for the current group
-_ensure_default_project(_mode_from_view(st.session_state.get("view","PM Hub")))
+# Delay auto-provision until the user has picked an industry (and only when needed)
+# Delay auto-provision until the user confirms the industry
+if not st.session_state.get("active_project_id"):
+    if st.session_state.get("industry") and st.session_state.get("auto_seed_ok", False):
+        _ensure_default_project(_mode_from_view(st.session_state.get("view","PM Hub")))
+
+
 
 
 # keep current view if it still exists, else default to the first item
@@ -1607,6 +1613,8 @@ def render_pipeline():
 # st.set_page_config(page_title="DecisionMate Rev4", layout="wide", page_icon="📊")
 
 if "active_view" not in st.session_state:  st.session_state.active_view = None
+    st.session_state.setdefault("auto_seed_ok", False)
+
 if "module_info" not in st.session_state:  st.session_state.module_info = None
 if "active_project_id" not in st.session_state: st.session_state.active_project_id = None
 if "active_namespace" not in st.session_state: st.session_state.active_namespace = None
@@ -1890,10 +1898,22 @@ with st.sidebar:
         key="industry",
         disabled=industry_locked
     )
+    
+    # Show a hint / lock note
     if industry_locked:
         st.caption(f"Project industry: {st.session_state['project_industry']}")
-
+    else:
+        st.caption("Pick an industry, then click **Use this industry and start**.")
+    
+    # Only allow auto-provision after the user explicitly confirms
+    if not st.session_state.get("active_project_id"):
+        if st.button("Use this industry and start", key="btn_use_industry"):
+            st.session_state["auto_seed_ok"] = True
+            _ensure_default_project(_mode_from_view(st.session_state.get("view", "PM Hub")))
+            st.rerun()
+    
     username = st.text_input("Username", value="Guest", key="username")
+
 
     # --- NEW: Mode is inferred from the current view (no radios here)
     st.session_state.mode = _mode_from_view(st.session_state.get("view", "PM Hub"))
@@ -1978,6 +1998,10 @@ with st.sidebar:
             key="select_project_id",
         )
         if selected == NONE:
+            # Unlock industry and prevent auto-seed until user confirms again
+            st.session_state.pop("project_industry", None)
+            st.session_state["auto_seed_ok"] = False
+
             st.session_state.active_project_id = None
             st.session_state.active_namespace = None
         else:

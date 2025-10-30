@@ -457,8 +457,12 @@ NAV_ITEMS = _nav_items_for_mode()
 # Delay auto-provision until the user confirms the industry
 if not st.session_state.get("active_project_id"):
     if st.session_state.get("industry") and st.session_state.get("auto_seed_ok", False):
-        _ensure_default_project(_mode_from_view(st.session_state.get("view","PM Hub")))
-
+        # Lock immediately so the list below points to the same place
+        _ind = st.session_state["industry"]
+        _mode = _mode_from_view(st.session_state.get("view","PM Hub"))
+        st.session_state.project_industry = _ind
+        st.session_state.active_namespace = f"{_ind}:projects" if _mode == "projects" else f"{_ind}:ops:{st.session_state.get('ops_mode','daily_ops')}"
+        _ensure_default_project(_mode)
 
 
 
@@ -1907,12 +1911,14 @@ with st.sidebar:
         st.caption("Pick an industry, then click **Use this industry and start**.")
     
     # Only allow auto-provision after the user explicitly confirms
-    if not st.session_state.get("active_project_id"):
-        if st.button("Use this industry and start", key="btn_use_industry"):
-            st.session_state["auto_seed_ok"] = True
-            _ensure_default_project(_mode_from_view(st.session_state.get("view", "PM Hub")))
-            st.rerun()
-    
+if not st.session_state.get("active_project_id"):
+    if st.button("Use this industry and start", key="btn_use_industry"):
+        st.session_state["auto_seed_ok"] = True
+        st.session_state.project_industry = industry
+        st.session_state.active_namespace = f"{industry}:projects" if _mode_from_view(st.session_state.get('view','PM Hub')) == 'projects' else f"{industry}:ops:{st.session_state.get('ops_mode','daily_ops')}"
+        _ensure_default_project(_mode_from_view(st.session_state.get("view", "PM Hub")))
+        st.rerun()
+
     username = st.text_input("Username", value="Guest", key="username")
 
 
@@ -1941,43 +1947,45 @@ with st.sidebar:
         # PM project creation
         new_pm_name = st.text_input("New PM project name", value="", key="inp_new_pm")
         if st.button("Create PM Project", key="btn_create_pm_project") and new_pm_name.strip():
-            ns = f"{industry}:projects"
-            pid = create_project(username, ns, new_pm_name.strip())
-
-            # NEW ✅: save project meta with chosen industry
             try:
-                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
-            except Exception:
-                pass
-
-            st.success(f"Created PM project: {pid}")
-            st.session_state.active_project_id = pid
-            st.session_state.active_namespace = ns
-            st.session_state.project_industry = industry
-            try: st.query_params.from_dict({"group": "projects"})
-            except Exception: pass
-            st.rerun()
+                ns = f"{industry}:projects"
+                pid = create_project(username, ns, new_pm_name.strip())
+                try:
+                    save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
+                except Exception:
+                    pass
+                st.success(f"Created PM project: {pid}")
+                st.session_state.active_project_id = pid
+                st.session_state.active_namespace = ns
+                st.session_state.project_industry = industry   # NEW: lock
+                try: st.query_params.from_dict({"group": "projects"})
+                except Exception: pass
+                st.rerun()
+            except Exception as e:
+                st.error(f"Create PM Project failed: {e!r}")
+        
 
     else:
         pretty = "Daily Ops" if st.session_state.ops_mode == "daily_ops" else "Small Projects"
         new_ops_name = st.text_input(f"New {pretty} project name", value="", key="inp_new_ops")
         if st.button("Create Ops Project", key="btn_create_ops_project") and new_ops_name.strip():
-            ns = f"{industry}:ops:{st.session_state.ops_mode}"
-            pid = create_project(username, ns, new_ops_name.strip())
-
-            # NEW ✅: save project meta with chosen industry
             try:
-                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
-            except Exception:
-                pass
+                ns = f"{industry}:ops:{st.session_state.ops_mode}"
+                pid = create_project(username, ns, new_ops_name.strip())
+                try:
+                    save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
+                except Exception:
+                    pass
+                st.success(f"Created {pretty} project: {pid}")
+                st.session_state.active_project_id = pid
+                st.session_state.active_namespace = ns
+                st.session_state.project_industry = industry   # NEW: lock
+                try: st.query_params.from_dict({"group": "ops", "ops_mode": st.session_state.ops_mode})
+                except Exception: pass
+                st.rerun()
+            except Exception as e:
+                st.error(f"Create Ops Project failed: {e!r}")
 
-            st.success(f"Created {pretty} project: {pid}")
-            st.session_state.active_project_id = pid
-            st.session_state.active_namespace = ns
-            st.session_state.project_industry = industry
-            try: st.query_params.from_dict({"group": "ops", "ops_mode": st.session_state.ops_mode})
-            except Exception: pass
-            st.rerun()
 
 
     projects = list_projects(username, namespace)

@@ -1953,6 +1953,7 @@ with st.sidebar:
             st.success(f"Created PM project: {pid}")
             st.session_state.active_project_id = pid
             st.session_state.active_namespace = ns
+            st.session_state.project_industry = industry
             try: st.query_params.from_dict({"group": "projects"})
             except Exception: pass
             st.rerun()
@@ -1973,6 +1974,7 @@ with st.sidebar:
             st.success(f"Created {pretty} project: {pid}")
             st.session_state.active_project_id = pid
             st.session_state.active_namespace = ns
+            st.session_state.project_industry = industry
             try: st.query_params.from_dict({"group": "ops", "ops_mode": st.session_state.ops_mode})
             except Exception: pass
             st.rerun()
@@ -2008,6 +2010,8 @@ with st.sidebar:
         else:
             st.session_state.active_project_id = selected
             st.session_state.active_namespace = namespace
+            st.session_state.project_industry = namespace.split(":", 1)[0]  # NEW: immediate lock
+
     else:
         st.info("No projects yet. Create one above.")
         st.session_state.active_project_id = None
@@ -2086,40 +2090,6 @@ process_events(PROJECT_ID)
 # =========================
 # OPS HUB VIEW (separate)
 # =========================
-if st.session_state["view"] == "Ops Hub":
-    if _locked_group() == "projects":
-        st.warning("Ops Hub is disabled while a **PM** project is active. Click **Reset (unlock)** in the sidebar to switch.")
-        st.stop()
-
-    # Add industry selector for Ops Hub
-    ops_industry = st.session_state.get("project_industry") or st.session_state.get("industry", "oil_gas")
-
-
-    pretty = {
-        "oil_gas": "Oil & Gas",
-        "green_energy": "Green Energy",
-        "it": "IT",
-        "healthcare": "Healthcare",
-        "government_infrastructure": "Government & Infrastructure",
-        "aerospace_defense": "Aerospace & Defense",
-        "manufacturing": "Manufacturing",
-        
-    }.get(ops_industry, ops_industry.title())
-
-    st.subheader(f"🛠 Ops Hub — {pretty}")
-
-    submode = st.radio(
-        "Sub-mode",
-        ["daily_ops", "small_projects", "call_center"],
-        horizontal=True,
-        key="ops_mode",
-    )
-# Render the selected Ops sub-mode using the tolerant router
-    if not open_ops_hub(ops_industry, st.session_state.get("ops_mode", "daily_ops")):
-        # Fallback: show the generic requirements page if the hub didn't render
-        render_requirements(ops_industry, PHASE_CODE)
-
-    st.stop()  # Prevent the rest of the page from drawing twice
 
 # app.py
 import importlib, inspect

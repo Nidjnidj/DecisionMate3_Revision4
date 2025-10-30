@@ -7,8 +7,6 @@ from typing import Optional, Tuple
 
 import streamlit as st
 
-# ---------- Page config (must be one of the first Streamlit calls) ----------
-
 # ---- Optional deps (handled gracefully) ----
 try:
     from streamlit_lottie import st_lottie  # pip install streamlit-lottie
@@ -16,13 +14,12 @@ try:
 except Exception:
     LOTTIE_OK = False
 
-# --- Auth completely disabled (guest mode only) ---
-FIREBASE_OK = False  # hard disable
-# (Optional) if you have firebase_db imports elsewhere, keep the try/except but don't use it.
-# try:
-#     import firebase_db as fdb
-# except Exception:
-#     fdb = None
+try:
+    import firebase_auth as fa   # your local file
+    import firebase_db as fdb    # your local file
+    FIREBASE_OK = True
+except Exception:
+    FIREBASE_OK = False
 
 
 # ========= Utility =========
@@ -34,9 +31,6 @@ def _rerun():
         st.rerun()
     else:
         st.experimental_rerun()
-def _toggle_nav():
-    st.session_state["nav_open"] = not st.session_state.get("nav_open", False)
-    _rerun()
 
 def asset_path(*parts: str) -> str:
     """Resolve assets from project root first, then /mnt/data fallback."""
@@ -47,7 +41,6 @@ def asset_path(*parts: str) -> str:
         p2 = Path("/mnt/data").joinpath(parts[0])
         if p2.exists():
             return str(p2)
-    # last-resort: name only under /mnt/data
     return str(Path("/mnt/data").joinpath(parts[-1]))
 
 def _load_lottie_raw(fname: str) -> Optional[dict]:
@@ -66,12 +59,6 @@ def load_lottie_cached(fname: str) -> Optional[dict]:
 
 def _anim_h() -> int:
     return MOBILE_ANIM_H if st.session_state.get("is_mobile") else ANIM_H
-
-# ========= Nav State =========
-def _init_state():
-    st.session_state.setdefault("nav_open", False)
-    st.session_state.setdefault("current_page", "Home")
-    st.session_state.setdefault("theme", "light")
 
 
 # ========= Theme / CSS =========
@@ -128,17 +115,20 @@ def _theme_css():
   section[data-testid="stSidebar"] > div {
     background:#F3F6FC !important; border-right:1px solid var(--dm-border);
   }
-  /* Center the app icon in the sidebar */
-  section[data-testid="stSidebar"] img { display:block; margin:8px auto; }
+/* Center the app icon in the sidebar */
+section[data-testid="stSidebar"] img {
+  display:block;
+  margin:8px auto;      /* center horizontally */
+}
 
-  /* Helper class to center content inside cards */
-  .dm-center { display:flex; justify-content:center; align-items:center; }
+/* Helper class to center content inside cards */
+.dm-center { display:flex; justify-content:center; align-items:center; }
 
-  /* Slightly larger brand logo for better balance */
-  .brand-logo { width:80px; height:80px; border-radius:10px; object-fit:contain; }
-  @media (max-width: 768px) {
-    .brand-logo { width:64px; height:64px; }
-  }
+/* Slightly larger brand logo for better balance */
+.brand-logo { width:80px; height:80px; border-radius:10px; object-fit:contain; }
+@media (max-width: 768px) {
+  .brand-logo { width:64px; height:64px; }
+}
 
   /* HERO */
   .dm-hero {
@@ -218,7 +208,7 @@ def _save_resume_pointer(uid: str, project_id: Optional[str], phase_id: Optional
     if not (FIREBASE_OK and uid):
         return
     try:
-        fdb.save_user_state(uid=uid, data={"last_project_id": project_id, "last_phase_id": phase_id})  # noqa: F821
+        fdb.save_user_state(uid=uid, data={"last_project_id": project_id, "last_phase_id": phase_id})
     except Exception:
         pass
 
@@ -226,7 +216,7 @@ def _load_resume_pointer(uid: str) -> Tuple[Optional[str], Optional[str]]:
     if not (FIREBASE_OK and uid):
         return (None, None)
     try:
-        data = fdb.load_user_state(uid=uid) or {}  # noqa: F821
+        data = fdb.load_user_state(uid=uid) or {}
         return data.get("last_project_id"), data.get("last_phase_id")
     except Exception:
         return (None, None)
@@ -285,15 +275,6 @@ def _hero():
             cL, cM, cR = st.columns([1, 2, 1])
             with cM:
                 st.image(asset_path("decisionmate.png"), width=70)
-
-    # ---- Open/Close nav button (state-driven, no JS) ----
-    with st.container():
-        st.button(
-            "☰ Open navigation" if not st.session_state["nav_open"] else "✖ Close navigation",
-            use_container_width=True,
-            key="btn_nav_toggle",
-            on_click=_toggle_nav,
-        )
 
 
 def _announcement(text="✨ Rev4 adds AI Benchmarking, polished front door, and guest mode!"):
@@ -508,55 +489,19 @@ def _footer():
 
 # ========= Entry =========
 def render_frontdoor():
+    st.set_page_config(page_title="DecisionMate — Welcome",
+                       page_icon=asset_path("decisionmate.png"),
+                       layout="wide")
 
-    _init_state()   # <-- initialize nav + page state early
     _theme_css()
 
     if "is_mobile" not in st.session_state:
         st.session_state["is_mobile"] = False  # simple default
 
-    # Sidebar branding + NAV
+    # Sidebar branding (app icon)
     with st.sidebar:
         st.image(asset_path("decisionmate.png"), caption="DecisionMate", use_container_width=True)
         st.markdown("<div class='dm-note'>Decision Intelligence Toolkit</div>", unsafe_allow_html=True)
-        st.button(
-            "✖ Close navigation" if st.session_state.get("nav_open") else "☰ Open navigation",
-            key="btn_nav_sidebar_toggle_frontdoor",
-            use_container_width=True,
-            on_click=_toggle_nav,
-        )
-
-        # Actual nav (renders only when nav_open = True)
-        if st.session_state["nav_open"]:
-            page = st.radio(
-                "Go to",
-                ["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"],
-                index=["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"]
-                      .index(st.session_state["current_page"]),
-                key="nav_radio_main",
-            )
-            if page != st.session_state["current_page"]:
-                st.session_state["current_page"] = page
-                _rerun()
-        else:
-            st.caption("Use “☰ Open navigation” to access modules.")
-
-    # ===== Inline Navigation Fallback (appears in main area when nav_open=True) =====
-    if st.session_state.get("nav_open"):
-        st.markdown("<div class='dm-card'>", unsafe_allow_html=True)
-        st.markdown("#### Navigation", unsafe_allow_html=True)
-        page_inline = st.radio(
-            "Go to",
-            ["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"],
-            index=["Home", "AI Optimizer", "AI Benchmarking", "PM Analytics", "Settings"]
-                  .index(st.session_state["current_page"]),
-            key="nav_radio_inline",
-            horizontal=False,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-        if page_inline != st.session_state["current_page"]:
-            st.session_state["current_page"] = page_inline
-            _rerun()
 
     # HERO + info + quick access
     _hero()
@@ -567,51 +512,44 @@ def render_frontdoor():
     _feature_chips()
     st.markdown("")
 
-    # Guest-only mode (no sign-in at all)
+    # Auth + Info
     auth_col, info_col = st.columns([1, 1])
     with auth_col:
-        st.subheader("Try DecisionMate")
-        st.info("Sign-in is disabled in this build. Explore instantly in Guest mode.")
-        c1, c2 = st.columns([0.6, 0.4])
-        with c1:
-            if st.button("Continue as Guest", use_container_width=True, key="dm_guest_only"):
-                st.session_state["auth_state"] = "guest"
-                st.session_state.setdefault("current_project_id", "P-DEMO")
-                st.session_state.setdefault("current_phase_id", "PH-FEL1")
-                st.success("Guest mode: your work won’t be saved.")
-                _rerun()
-        with c2:
-            # cute typing cat if you want to keep the animation
-            if LOTTIE_OK:
-                typing = load_lottie_cached("cat_typing.json")
-                if typing:
-                    st_lottie(typing, height=_anim_h(), key="dm_cat_guest_only")
-    _what_is_dm(info_col)
+        email, password, wants_login = _login_block()
+        if wants_login:
+            if not email or not password:
+                st.warning("Please enter email and password.")
+            else:
+                uid = None
+                if FIREBASE_OK:
+                    try:
+                        user = fa.sign_in(email=email, password=password)
+                        uid = user.get("uid") or user.get("localId") or user.get("userId")
+                    except Exception as e:
+                        st.error(f"Login failed: {getattr(e, 'message', str(e))}")
+                        return
+                else:
+                    uid = "demo-user"
 
-    # --- Simple router (keeps front door intact) ---
-    page = st.session_state["current_page"]
-    if page == "AI Optimizer":
-        try:
-            from ai import ai_optimizer
-            ai_optimizer.render()
-            st.stop()
-        except Exception:
-            st.warning("AI Optimizer module not available.")
-    elif page == "AI Benchmarking":
-        try:
-            from ai import ai_benchmarking
-            ai_benchmarking.render()
-            st.stop()
-        except Exception:
-            st.warning("AI Benchmarking module not available.")
-    elif page == "PM Analytics":
-        try:
-            from ai import ai_pm_analytics
-            ai_pm_analytics.render()
-            st.stop()
-        except Exception:
-            st.warning("AI PM Analytics module not available.")
-    # Home / Settings: remain on the front door for now (optional to implement)
+                last_project, last_phase = _load_resume_pointer(uid)
+                st.session_state["auth_state"] = "user"
+                st.session_state["uid"] = uid
+                if last_project:
+                    st.session_state["current_project_id"] = last_project
+                if last_phase:
+                    st.session_state["current_phase_id"] = last_phase
+                st.success("Signed in. Loading your workspace…")
+                st.balloons()
+                _rerun()
+
+        if _guest_block():
+            st.session_state["auth_state"] = "guest"
+            st.session_state.setdefault("current_project_id", "P-DEMO")
+            st.session_state.setdefault("current_phase_id", "PH-FEL1")
+            st.info("Guest mode: your work won’t be saved. Sign in anytime to keep progress.")
+            _rerun()
+
+    _what_is_dm(info_col)
 
     # Footer + tips
     _guest_tip()

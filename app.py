@@ -1,3 +1,12 @@
+# ===================== app.py — DecisionMate Rev4 (human-in-the-loop) =====================
+# Single-file app with:
+# - Robust modules import
+# - Manual cascade (no automatic downstream generation)
+# - Action Center for Pending approvals
+# - Swimlane + Gate check
+# - FEL Governance (team, reviewers, approvers, deliverables, artifact status, gate move)
+# - Resilient Firebase init
+
 import json, hashlib, time, sys, pathlib
 from typing import Dict, Any, Optional, Callable
 import importlib.util
@@ -62,13 +71,7 @@ def _rerun():
     if hasattr(st, "rerun"):
         st.rerun()
     else:  # for older Streamlit
-        st.experimental_rerun()
-
-def _toggle_nav():
-    st.session_state["nav_open"] = not st.session_state.get("nav_open", False)
-    _rerun()
-
-
+        _rerun()
 # Rev3 core fallbacks
 try:
     from decisionmate_core.artifact_service import ArtifactService
@@ -80,29 +83,6 @@ try:
 except Exception:
     from dependencies import PRODUCER
 
-import streamlit as st
-
-st.set_page_config(
-    page_title="DecisionMate3",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Hide "View source" and GitHub link
-hide_streamlit_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stDeployButton {display: none;}
-    .viewerBadge_link__qRIco {display: none;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-# --- Front door gating (run this BEFORE any UI builds) ---
-# --- Front door gating (auto-guest; no splash) ---
-st.session_state.setdefault("auth_state", "guest")
-# (Nothing else here; no render_frontdoor / st.stop)
 
 # Minimal translations dict many Rev-3 tools expect
 REV3_T = {
@@ -389,7 +369,7 @@ from data.firestore import list_projects, create_project, save_project_doc, load
 
 # ---- View routing (Hub vs Ops Hub vs Modules)
 if "view" not in st.session_state:
-    st.session_state["view"] = "Workspace"  # default landing
+    st.session_state["view"] = "PM Hub"  # default landing
 
 SHOW_PM_HUB = True  # keep PM Hub visible by default
 
@@ -427,44 +407,8 @@ def _mode_from_view(view: str) -> str:
     if lock:
         return lock
     return "ops" if view == "Ops Hub" else "projects"
-# --- Fast Start helper: ensure there is an active project ---
-def _ensure_default_project(mode: str = "projects"):
-    username = st.session_state.get("username", "Guest")
-    industry = st.session_state.get("industry", "oil_gas")
-    ns = f"{industry}:projects" if mode == "projects" else f"{industry}:ops:{st.session_state.get('ops_mode','daily_ops')}"
 
-    if not st.session_state.get("active_project_id") or st.session_state.get("active_namespace") != ns:
-        try:
-            existing = list_projects(username, ns) or {}
-        except Exception:
-            existing = {}
-        if existing:
-            # open the first project found
-            pid = sorted(existing.keys())[0]
-        else:
-            # create a new one silently
-            pid = create_project(username, ns, "My First Project")
-            try:
-                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
-            except Exception:
-                pass
-        st.session_state.active_project_id = pid
-        st.session_state.active_namespace = ns
-        st.session_state.project_industry = industry
 NAV_ITEMS = _nav_items_for_mode()
-# Fast-start: auto-provision a project for the current group
-# Delay auto-provision until the user has picked an industry (and only when needed)
-# Delay auto-provision until the user confirms the industry
-if not st.session_state.get("active_project_id"):
-    if st.session_state.get("industry") and st.session_state.get("auto_seed_ok", False):
-        # Lock immediately so the list below points to the same place
-        _ind = st.session_state["industry"]
-        _mode = _mode_from_view(st.session_state.get("view","PM Hub"))
-        st.session_state.project_industry = _ind
-        st.session_state.active_namespace = f"{_ind}:projects" if _mode == "projects" else f"{_ind}:ops:{st.session_state.get('ops_mode','daily_ops')}"
-        _ensure_default_project(_mode)
-
-
 
 # keep current view if it still exists, else default to the first item
 current = st.session_state.get("view") or NAV_ITEMS[0]
@@ -484,31 +428,11 @@ if _choice != st.session_state["view"]:
         st.rerun()
     except Exception:
         _rerun()
-
-# Inline navigation fallback (shows in main area if sidebar is collapsed)
-try:
-    nav_items_now = _nav_items_for_mode()
-    if st.session_state.get("view") not in nav_items_now:
-        st.session_state["view"] = nav_items_now[0]
-    st.markdown("<div class='dm-card'>", unsafe_allow_html=True)
-    st.markdown("#### Navigation (inline fallback)", unsafe_allow_html=True)
-    _choice_inline = st.radio(
-        "Navigate",
-        nav_items_now,
-        index=nav_items_now.index(st.session_state["view"]),
-        key="nav_radio_inline"
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-    if _choice_inline != st.session_state["view"]:
-        st.session_state["view"] = _choice_inline
-        _rerun()
-except Exception:
-    pass
-
 # after:
 # _choice = st.sidebar.radio(...)
 
-
+if st.session_state.get("auth_state") not in ("user", "guest"):
+    render_frontdoor(); st.stop()  # NEW
 
 # === Module view router (needed for go_to_module) ===
 if st.session_state.get("active_view") == "module":
@@ -781,42 +705,35 @@ def _render_ops_hub(industry: str, ops_mode: str) -> bool:
 
     return False
 
-
-
-# === Ops Hub view (clean, single-pass; no unreachable code) ===
 if st.session_state.get("view") == "Ops Hub":
+    # --- Sidebar: context & projects ---
     with st.sidebar:
         st.markdown("### Context")
 
-        # Industry selector (keeps state aligned)
-        ops_ind_choices = _industry_choices()
-        ops_ind_default = (
-            ops_ind_choices.index(st.session_state.get("project_industry", "oil_gas"))
-            if st.session_state.get("project_industry") in ops_ind_choices else 0
-        )
         ops_ind = st.selectbox(
             "Ops Industry",
-            ops_ind_choices,
-            index=ops_ind_default,
+            _industry_choices(),
+            index=(_industry_choices().index(st.session_state.get("project_industry", "oil_gas"))
+                if st.session_state.get("project_industry") in _industry_choices() else 0),
             key="ops_industry_select",
         )
         st.session_state["industry"] = ops_ind
         st.session_state["project_industry"] = ops_ind
 
+
         st.markdown("### Mode")
         ops_mode = st.radio(
             "Sub-mode",
-            getattr(TAXONOMY, "ops_modes", ["daily_ops", "small_projects", "call_center"]),
+            getattr(TAXONOMY, "ops_modes", ["daily_ops","small_projects","call_center"]),
             key="ops_mode",
-            horizontal=True,
+            horizontal=True
         )
 
         st.markdown("### Projects")
         new_ops_name = st.text_input("New Daily Ops project name", key="new_ops_proj_name")
         if st.button("Create Ops Project", use_container_width=True, key="btn_create_ops_proj"):
-            name = new_ops_name.strip() or f"Daily Ops {int(time.time())}"
-            pid = _ops_slug(name)
-            _ops_save_project(pid, name, ops_ind)
+            pid = _ops_slug(new_ops_name)
+            _ops_save_project(pid, new_ops_name or pid, ops_ind)
             _ops_lock(pid, ops_ind)
             _safe_rerun()
 
@@ -826,40 +743,78 @@ if st.session_state.get("view") == "Ops Hub":
             _ops_lock(sel, _ops_projects()[sel]["industry"])
 
         if st.button("Reset (unlock)", key="ops_reset"):
-            for k in ("active_namespace", "active_project_id", "current_project_id", "current_phase_id"):
+            for k in ("active_namespace","active_project_id","current_project_id","current_phase_id"):
                 st.session_state.pop(k, None)
             _safe_rerun()
-
-    # === Ensure IDs even if no project selected ===
+# Ensure IDs for ops even if no project is selected
     PHASE_CODE = "OPS_DAILY"
-    industry = (st.session_state.get("project_industry", ops_ind) or "oil_gas").lower()
+    industry = st.session_state.get("project_industry", ops_ind).lower()
     st.session_state.setdefault("current_project_id", "OPS-DEMO")
     st.session_state.setdefault("current_phase_id", _ops_day_phase_id())
 
-    # === Try to render the industry-specific Ops Hub ===
-    rendered = _render_ops_hub(industry, st.session_state.get("ops_mode", "daily_ops"))
-
-    # === Fallback: generic requirements for OPS_DAILY ===
-    if not rendered:
-        st.info("Showing generic Ops requirements (no industry-specific module found or module errored).")
+    # Render the selected Ops sub-mode using the tolerant router
+    if not _render_ops_hub(industry, st.session_state.get("ops_mode", "daily_ops")):
+        # Fallback: generic requirements page if the hub didn't render
         render_requirements(industry, PHASE_CODE)
 
-        # (Optional) tiny demo actions
+    st.stop()  # prevent the rest of the page from drawing twice
+
+    # --- Ensure IDs even if no project selected ---
+    industry  = (st.session_state.get("project_industry") or st.session_state.get("industry") or "oil_gas").lower()
+    project_id = st.session_state.get("current_project_id") or "OPS-DEMO"
+    st.session_state["current_project_id"] = project_id
+    phase_code = "OPS_DAILY"         # only used by the generic fallback
+    phase_id   = st.session_state.get("current_phase_id") or _ops_day_phase_id()
+    st.session_state["current_phase_id"] = phase_id
+
+    # Human-friendly title per submode
+    _MODE_TITLE = {
+        "daily_ops": "Daily Ops",
+        "small_projects": "Small Projects",
+        "call_center": "Call Center",
+    }
+    mode_title = _MODE_TITLE.get(st.session_state.get("ops_mode","daily_ops"),
+                                 st.session_state.get("ops_mode","daily_ops").replace("_"," ").title())
+
+    st.markdown(f"## 🛢️ {mode_title} — {industry.replace('_',' ').title()}")
+
+    # --- Try to render the industry-specific Ops Hub module ---
+    import importlib
+    module_name = f"workflows.ops_hub_{industry}"
+    rendered = False
+    try:
+        mod = importlib.import_module(module_name)
+        if hasattr(mod, "render"):
+            # Prefer render(T={...}); fall back to render(industry=..., submode=...)
+            try:
+                mod.render({"ops_mode": st.session_state["ops_mode"], "industry": industry})
+            except TypeError:
+                mod.render(industry=industry, submode=st.session_state["ops_mode"])
+            rendered = True
+    except Exception as _e:
+        # optional: uncomment to debug
+        # st.exception(_e)
+        pass
+
+    # --- Fallback: generic OPS_DAILY requirements if the module is missing or errored ---
+    if not rendered:
+        st.info("Showing generic Ops requirements (no industry-specific module found or module errored).")
+        render_requirements(industry, phase_code)
+
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Seed Well Plan (Draft)", key="ops_seed_wp"):
-                save_artifact(st.session_state["current_project_id"], st.session_state["current_phase_id"],
-                              "Subsurface", "Well_Plan", {"auto": True}, status="Draft")
+            if st.button("Seed Well Plan (Draft)"):
+                save_artifact(project_id, phase_id, "Subsurface", "Well_Plan", {"auto": True}, status="Draft")
                 _safe_rerun()
         with c2:
-            if st.button("Approve Latest Well Plan", key="ops_approve_wp"):
-                rec = get_latest(st.session_state["current_project_id"], "Well_Plan", st.session_state["current_phase_id"])
+            if st.button("Approve Latest Well Plan (Trigger Requests)"):
+                rec = get_latest(project_id, "Well_Plan", phase_id)
                 if rec:
-                    approve_artifact(st.session_state["current_project_id"], rec["artifact_id"])
+                    approve_artifact(project_id, rec["artifact_id"])
                     _safe_rerun()
 
-    # Dispatch any events and stop the page so the rest doesn't double-render
-    drain_events(st.session_state["current_project_id"])
+    # Dispatch any events (safe no-op if none)
+    drain_events(project_id)
     st.stop()
 
 
@@ -1614,12 +1569,9 @@ def render_pipeline():
 # =============================================================================
 # Page config & session init
 # =============================================================================
-# st.set_page_config(page_title="DecisionMate Rev4", layout="wide", page_icon="📊")
+st.set_page_config(page_title="DecisionMate Rev4", layout="wide", page_icon="📊")
 
-if "active_view" not in st.session_state:
-    st.session_state.active_view = None
-st.session_state.setdefault("auto_seed_ok", False)
-
+if "active_view" not in st.session_state:  st.session_state.active_view = None
 if "module_info" not in st.session_state:  st.session_state.module_info = None
 if "active_project_id" not in st.session_state: st.session_state.active_project_id = None
 if "active_namespace" not in st.session_state: st.session_state.active_namespace = None
@@ -1884,13 +1836,6 @@ def _industry_choices() -> list[str]:
 
 with st.sidebar:
     st.markdown("## Context")
-    st.button(
-        "✖ Close navigation" if st.session_state.get("nav_open") else "☰ Open navigation",
-        key="btn_nav_sidebar_toggle_app",
-        use_container_width=True,
-        on_click=_toggle_nav,
-    )
-
     # If a project is active and we know its industry, lock the dropdown
     industry_locked = bool(st.session_state.get("active_project_id")) and bool(st.session_state.get("project_industry"))
     if industry_locked:
@@ -1903,24 +1848,10 @@ with st.sidebar:
         key="industry",
         disabled=industry_locked
     )
-    
-    # Show a hint / lock note
     if industry_locked:
         st.caption(f"Project industry: {st.session_state['project_industry']}")
-    else:
-        st.caption("Pick an industry, then click **Use this industry and start**.")
-    
-    # Only allow auto-provision after the user explicitly confirms
-if not st.session_state.get("active_project_id"):
-    if st.button("Use this industry and start", key="btn_use_industry"):
-        st.session_state["auto_seed_ok"] = True
-        st.session_state.project_industry = industry
-        st.session_state.active_namespace = f"{industry}:projects" if _mode_from_view(st.session_state.get('view','PM Hub')) == 'projects' else f"{industry}:ops:{st.session_state.get('ops_mode','daily_ops')}"
-        _ensure_default_project(_mode_from_view(st.session_state.get("view", "PM Hub")))
-        st.rerun()
 
     username = st.text_input("Username", value="Guest", key="username")
-
 
     # --- NEW: Mode is inferred from the current view (no radios here)
     st.session_state.mode = _mode_from_view(st.session_state.get("view", "PM Hub"))
@@ -1947,45 +1878,41 @@ if not st.session_state.get("active_project_id"):
         # PM project creation
         new_pm_name = st.text_input("New PM project name", value="", key="inp_new_pm")
         if st.button("Create PM Project", key="btn_create_pm_project") and new_pm_name.strip():
+            ns = f"{industry}:projects"
+            pid = create_project(username, ns, new_pm_name.strip())
+
+            # NEW ✅: save project meta with chosen industry
             try:
-                ns = f"{industry}:projects"
-                pid = create_project(username, ns, new_pm_name.strip())
-                try:
-                    save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
-                except Exception:
-                    pass
-                st.success(f"Created PM project: {pid}")
-                st.session_state.active_project_id = pid
-                st.session_state.active_namespace = ns
-                st.session_state.project_industry = industry   # NEW: lock
-                try: st.query_params.from_dict({"group": "projects"})
-                except Exception: pass
-                st.rerun()
-            except Exception as e:
-                st.error(f"Create PM Project failed: {e!r}")
-        
+                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
+            except Exception:
+                pass
+
+            st.success(f"Created PM project: {pid}")
+            st.session_state.active_project_id = pid
+            st.session_state.active_namespace = ns
+            try: st.query_params.from_dict({"group": "projects"})
+            except Exception: pass
+            st.rerun()
 
     else:
         pretty = "Daily Ops" if st.session_state.ops_mode == "daily_ops" else "Small Projects"
         new_ops_name = st.text_input(f"New {pretty} project name", value="", key="inp_new_ops")
         if st.button("Create Ops Project", key="btn_create_ops_project") and new_ops_name.strip():
-            try:
-                ns = f"{industry}:ops:{st.session_state.ops_mode}"
-                pid = create_project(username, ns, new_ops_name.strip())
-                try:
-                    save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
-                except Exception:
-                    pass
-                st.success(f"Created {pretty} project: {pid}")
-                st.session_state.active_project_id = pid
-                st.session_state.active_namespace = ns
-                st.session_state.project_industry = industry   # NEW: lock
-                try: st.query_params.from_dict({"group": "ops", "ops_mode": st.session_state.ops_mode})
-                except Exception: pass
-                st.rerun()
-            except Exception as e:
-                st.error(f"Create Ops Project failed: {e!r}")
+            ns = f"{industry}:ops:{st.session_state.ops_mode}"
+            pid = create_project(username, ns, new_ops_name.strip())
 
+            # NEW ✅: save project meta with chosen industry
+            try:
+                save_project_doc(username, ns, pid, "meta", {"industry": industry, "created_by": username})
+            except Exception:
+                pass
+
+            st.success(f"Created {pretty} project: {pid}")
+            st.session_state.active_project_id = pid
+            st.session_state.active_namespace = ns
+            try: st.query_params.from_dict({"group": "ops", "ops_mode": st.session_state.ops_mode})
+            except Exception: pass
+            st.rerun()
 
 
     projects = list_projects(username, namespace)
@@ -2009,17 +1936,11 @@ if not st.session_state.get("active_project_id"):
             key="select_project_id",
         )
         if selected == NONE:
-            # Unlock industry and prevent auto-seed until user confirms again
-            st.session_state.pop("project_industry", None)
-            st.session_state["auto_seed_ok"] = False
-
             st.session_state.active_project_id = None
             st.session_state.active_namespace = None
         else:
             st.session_state.active_project_id = selected
             st.session_state.active_namespace = namespace
-            st.session_state.project_industry = namespace.split(":", 1)[0]  # NEW: immediate lock
-
     else:
         st.info("No projects yet. Create one above.")
         st.session_state.active_project_id = None
@@ -2098,6 +2019,46 @@ process_events(PROJECT_ID)
 # =========================
 # OPS HUB VIEW (separate)
 # =========================
+if st.session_state["view"] == "Ops Hub":
+    if _locked_group() == "projects":
+        st.warning("Ops Hub is disabled while a **PM** project is active. Click **Reset (unlock)** in the sidebar to switch.")
+        st.stop()
+
+    # Add industry selector for Ops Hub
+    ops_industry = st.selectbox(
+        "Ops Industry",
+        TAXONOMY.industries,
+        index=TAXONOMY.industries.index(st.session_state.get("industry", "oil_gas")),
+        key="ops_industry_select"
+    )
+    st.session_state["industry"] = ops_industry
+    st.session_state["project_industry"] = ops_industry
+
+    pretty = {
+        "oil_gas": "Oil & Gas",
+        "green_energy": "Green Energy",
+        "it": "IT",
+        "healthcare": "Healthcare",
+        "government_infrastructure": "Government & Infrastructure",
+        "aerospace_defense": "Aerospace & Defense",
+        "manufacturing": "Manufacturing",
+        
+    }.get(ops_industry, ops_industry.title())
+
+    st.subheader(f"🛠 Ops Hub — {pretty}")
+
+    submode = st.radio(
+        "Sub-mode",
+        ["daily_ops", "small_projects", "call_center"],
+        horizontal=True,
+        key="ops_mode",
+    )
+# Render the selected Ops sub-mode using the tolerant router
+    if not open_ops_hub(ops_industry, st.session_state.get("ops_mode", "daily_ops")):
+        # Fallback: show the generic requirements page if the hub didn't render
+        render_requirements(ops_industry, PHASE_CODE)
+
+    st.stop()  # Prevent the rest of the page from drawing twice
 
 # app.py
 import importlib, inspect
@@ -2182,6 +2143,92 @@ def open_ops_hub(industry: str, submode: str) -> bool:
     except Exception as e:
         st.error(f"Ops callable failed: {e}")
         return False
+# app.py
+import importlib, inspect
+import streamlit as st
+
+def open_ops_hub(industry: str, submode: str) -> bool:
+    """Open the Ops Hub for an industry and route special submodes (e.g., call_center)."""
+    try:
+        from services.industries import route as industries_route
+        module_path, entry = industries_route(industry, "ops")
+    except Exception as e:
+        st.error(f"Ops route error for {industry}: {e}")
+        return False
+
+    # --- Try the industry hub first
+    try:
+        mod = importlib.import_module(module_path)
+    except Exception as e:
+        st.error(f"Cannot import Ops module '{module_path}': {e}")
+        return False
+
+    candidates = [
+        getattr(mod, entry, None) if entry else None,
+        getattr(mod, "render", None),
+        getattr(mod, "run", None),
+    ]
+    if not any(callable(c) for c in candidates):
+        # try submode-named entries in the hub
+        sm = (submode or "daily_ops").strip()
+        candidates.extend([
+            getattr(mod, sm, None),
+            getattr(mod, f"render_{sm}", None),
+            getattr(mod, f"{sm}_view", None),
+        ])
+    fn = next((c for c in candidates if callable(c)), None)
+
+    # --- If hub doesn't implement 'call_center', route to the external tool
+    if not fn and (submode or "").strip() == "call_center":
+        try:
+            from ops_call_center import render as call_center_render
+            call_center_render(industry=industry, submode=submode)
+            st.caption("✅ Opened Call Center tool.")
+            return True
+        except Exception as e:
+            st.error(f"Call Center failed: {e}")
+            return False
+
+    if not fn:
+        st.error(
+            f"Ops Hub module '{module_path}' has no callable entry. "
+            f"Tried: {entry!r} → render → run → {submode} → render_{submode} → {submode}_view"
+        )
+        return False
+
+    # --- Call the hub entry with best-effort kwargs
+    try:
+        params = set(inspect.signature(fn).parameters.keys())
+    except Exception:
+        params = set()
+    if params:
+        kwargs = {}
+        if "industry" in params: kwargs["industry"] = industry
+        if "submode"  in params: kwargs["submode"]  = submode
+        if "mode"     in params: kwargs["mode"]     = submode
+        if "st"       in params: kwargs["st"]       = st
+        try:
+            fn(**kwargs)
+            return True
+        except TypeError:
+            pass
+
+    for args in [(), (submode,), (industry,), (industry, submode)]:
+        try:
+            fn(*args)
+            return True
+        except TypeError:
+            continue
+
+    try:
+        fn()
+        return True
+    except Exception as e:
+        st.error(f"Ops callable failed: {e}")
+        return False
+
+
+
 
 
 
